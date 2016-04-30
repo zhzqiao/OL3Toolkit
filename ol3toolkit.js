@@ -29,15 +29,14 @@ $.OL3Toolkit = {};
 $.OL3Toolkit.options = {
     //快速初始化
     quickCreation: true,
-    //自动把输入的'EPSG:4326'转换到'EPSG:900913'
+    //自动把输入的'EPSG:4326'转换到'EPSG:3857/900913'
     autoLatLngTransform: true,
     //地图大小自适应
     mapSizeSelfAdaption: true,
     //多地图源切换
     switchMultiMapSources: true,
-    mapSources:{
-        TianMap: "",        
-    },
+    //已有地图源
+    mapSources:['TianMap','baidu','OSM'],
     //显示点线面数据
     drawBasicElements: true,
     //鸟瞰功能
@@ -48,6 +47,25 @@ $.OL3Toolkit.options = {
     basicMeasure: true,
     //地图上弹出窗
     basicPopup: true,
+    //预定点线面样式
+    sld: {
+        lightBlue: "#3c8dbc",
+        red: "#f56954",
+        green: "#00a65a",
+        aqua: "#00c0ef",
+        yellow: "#f39c12",
+        blue: "#0073b7",
+        navy: "#001F3F",
+        teal: "#39CCCC",
+        olive: "#3D9970",
+        lime: "#01FF70",
+        orange: "#FF851B",
+        fuchsia: "#F012BE",
+        purple: "#8E24AA",
+        maroon: "#D81B60",
+        black: "#222222",
+        gray: "#d2d6de"
+    }
 }
 
 $(function() {
@@ -103,20 +121,28 @@ function _ol3ToolkitInit() {
             var baseSource = arguments[3]?arguments[3]:"OSM";
             //如果开启自动转换经纬度，且参数正确，则把经纬度转换成标准坐标参考系
             if($.OL3Toolkit.options.autoLatLngTransform && viewCenter[0] <= 180 && viewCenter[0] >= -180 && viewCenter[1] <= 90 && viewCenter[1] >= -90){
-                viewCenter = ol.proj.transform(viewCenter, 'EPSG:4326', 'EPSG:900913')
+                viewCenter = ol.proj.transform(viewCenter, 'EPSG:4326', 'EPSG:3857')
             }
             map = new ol.Map({
-                layers:[
-                    new ol.layer.Tile({
-                        source: new ol.source.OSM()
-                    })
-                ],
+                layers: this.addlayers(baseSource),
                 target: targetID,
                 view: new ol.View({
                     center:viewCenter,
                     zoom: zoomLevel
                 })
             });
+        },
+        //解析baseSource，生成相应的底图
+        addlayers: function(baseSource){
+            baseSource.every(function(item, index){
+               if(item in this.options.mapSources){}
+            });
+            var layers = [
+                new ol.layer.Tile({
+                    source: new ol.source.OSM()
+                })
+            ];
+            return layers
         }
     }
 
