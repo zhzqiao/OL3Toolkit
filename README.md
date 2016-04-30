@@ -11,11 +11,12 @@
 ## 使用说明
 在加载ol3toolkit.js前先加载js文件夹里的其他引用包和css，然后在script中简单设置OL3ToolkitOptions对象即可。如
 > var OL3ToolkitOptions = {zoomLevel: 10, viewCenter:[120,30]};
+
 具体实例请参照example.html
 
 ##常用参数
 OL3ToolkitOptions中常用参数包括
-* targetID: 绑定的<div>Id,
+* targetID: 绑定的div,
 * viewCenter: 地图起始中心坐标,
 * zoomLevel: 初始地图缩放等级,    
 * baseMapSource: 底图数据源，暂时只有["OSM",'SATELLITE']两种
