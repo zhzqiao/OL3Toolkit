@@ -118,7 +118,7 @@ function _ol3ToolkitInit() {
             var targetID = arguments[0]?arguments[0]:"map";
             var viewCenter = arguments[1]?arguments[1]:[0,0];
             var zoomLevel = arguments[2]?arguments[2]:7;
-            var baseSource = arguments[3]?arguments[3]:"OSM";
+            var baseSource = arguments[3]?arguments[3]:["OSM"];
             //如果开启自动转换经纬度，且参数正确，则把经纬度转换成标准坐标参考系
             if($.OL3Toolkit.options.autoLatLngTransform && viewCenter[0] <= 180 && viewCenter[0] >= -180 && viewCenter[1] <= 90 && viewCenter[1] >= -90){
                 viewCenter = ol.proj.transform(viewCenter, 'EPSG:4326', 'EPSG:3857')
@@ -133,11 +133,12 @@ function _ol3ToolkitInit() {
             });
         },
         //解析baseSource，生成相应的底图
+        //to-do:解析参数，添加到图层组中
         addlayers: function(baseSource){
             baseSource.every(function(item, index){
-               if(item in this.options.mapSources){}
+               if(item in $.OL3Toolkit.options.mapSources){}
             });
-            var layers = [
+            layers = [
                 new ol.layer.Tile({
                     source: new ol.source.OSM()
                 })
@@ -148,16 +149,23 @@ function _ol3ToolkitInit() {
 
     $.OL3Toolkit.sizeSelfAdaption = {
         activate: function (outerClass) {
+            var outerElem;
+            //当没有传入外部类参数，或所传入的外部类不存在时，自动寻找外部类
+            if(outerClass==undefined||$(outerClass).length==0){
+                outerElem = $('#map').parent();
+            }else{
+                outerElem = $(outerClass);
+            }
             //初始时调整
             var _this = this;
-            _this.fix(outerClass);
+            _this.fix(outerElem);
             //改变窗口大小时再次调整
-            $(outerClass).resize(function () {
+            outerElem.resize(function () {
                 _this.fix(outerClass);
             });
         },
-        fix: function (outerClass) {
-            map.setSize([ $(outerClass).width(),$(window).height() - $('.main-footer').outerHeight() - $('.main-header').outerHeight() - 5])
+        fix: function (outerElem) {
+            map.setSize([outerElem.width(),$(window).height() - $('.main-footer').outerHeight() - $('.main-header').outerHeight() - 5])
         }
     }
 
