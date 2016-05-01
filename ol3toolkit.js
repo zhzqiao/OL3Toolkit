@@ -43,6 +43,8 @@ $.OL3Toolkit.options = {
     mapSizeSelfAdaption: true,
     //多地图源切换
     switchMultiMapSources: true,
+    //包含瓦片加载进度条
+    hasProgress: true,
     //显示点线面数据
     drawBasicElements: true,
     //鸟瞰功能
@@ -86,6 +88,11 @@ $(function() {
     //方便调用参数
     var o = $.OL3Toolkit.options;
     
+    //如果要包含进度条的话，在map下方添加一个#progress的div
+    if(o.hasProgress){
+        $("#"+o.targetID).append('<div id="progress"></div>');
+    }
+
     //初始化对象
     _ol3ToolkitInit();
     
@@ -99,6 +106,8 @@ $(function() {
     if(o.mapSizeSelfAdaption){
         $.OL3Toolkit.sizeSelfAdaption.activate('.content-wrapper');
     }
+
+
 
     map.addControl(new ol.control.LayerSwitcher());
 })
@@ -188,7 +197,11 @@ function _ol3ToolkitInit() {
             //如果$.OL3Toolkit.mapSources中有需要的底图，则组装成底图图层组
             for(var item in $.OL3Toolkit.mapSources){
                 if(neededMapSources.includes(item)){
-                    finalBaselayers.push($.OL3Toolkit.mapSources[item]());
+                    var source = $.OL3Toolkit.mapSources[item]();
+                    if($.OL3Toolkit.options.hasProgress){
+                        $.OL3Toolkit.progress.activate(source);
+                    }                    
+                    finalBaselayers.push(source);
                 }
             }
             return finalBaselayers;
@@ -217,6 +230,70 @@ function _ol3ToolkitInit() {
             map.setSize([outerElem.width(),$(window).height() - $('.main-footer').outerHeight() - $('.main-header').outerHeight() - 5])
         }
     };
+
+    $.OL3Toolkit.progress = {
+        activate: function(linkedSource) {
+            var this_ = this;
+            this_.el = document.getElementById('progress');
+            this_.loading = 0;
+            this_.loaded = 0;
+            linkedSource.getSource().on('tileloadstart', function() {
+                this_.addLoading();
+            });
+
+            linkedSource.getSource().on('tileloadend', function() {
+                this_.addLoaded();
+            });
+            linkedSource.getSource().on('tileloaderror', function() {
+                this_.addLoaded();
+            });
+        },
+        /**
+       * Renders a progress bar.
+       * @param {Element} el The target element.
+       * @constructor
+       */
+        progress: function(el) {
+            this.el = el;
+            this.loading = 0;
+            this.loaded = 0;
+        },
+        addLoading: function() {
+            if (this.loading === 0) {
+              this.show();
+            }
+            ++this.loading;
+            this.update();
+        },
+        addLoaded: function() {
+            var this_ = this;
+            setTimeout(function() {
+              ++this_.loaded;
+              this_.update();
+            }, 10);
+        },
+        update: function() {
+            var width = (this.loaded / this.loading * 100).toFixed(1) + '%';
+            this.el.style.width = width;
+            if (this.loading === this.loaded) {
+              this.loading = 0;
+              this.loaded = 0;
+              var this_ = this;
+              setTimeout(function() {
+                this_.hide();
+              }, 500);
+            }
+        },
+        show: function() {
+            this.el.style.visibility = 'visible';
+        },
+        hide: function() {
+            if (this.loading === this.loaded) {
+              this.el.style.visibility = 'hidden';
+              this.el.style.width = 0;
+            }
+        }
+    }
 
 }
 
