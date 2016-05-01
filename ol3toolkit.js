@@ -14,6 +14,11 @@ if(typeof ol === "undefined"){
     throw new Error("使用ol3toolkit需要先加载openlayers3");
 }
 
+// 确保第三方包LayerSwitcher在ol3toolkit.js前加载
+if(typeof ol.control.LayerSwitcher === "undefined"){
+    throw new Error("为了切换地图，请先加载LayerSwitcher");
+}
+
 /* OL3Toolkit
  *
  * @type Object
@@ -231,7 +236,9 @@ function _ol3ToolkitInit() {
         }
     };
 
+    //瓦片加载进度条工具
     $.OL3Toolkit.progress = {
+        //输入要生成进度条的ol.source
         activate: function(linkedSource) {
             var this_ = this;
             this_.el = document.getElementById('progress');
@@ -248,16 +255,7 @@ function _ol3ToolkitInit() {
                 this_.addLoaded();
             });
         },
-        /**
-       * Renders a progress bar.
-       * @param {Element} el The target element.
-       * @constructor
-       */
-        progress: function(el) {
-            this.el = el;
-            this.loading = 0;
-            this.loaded = 0;
-        },
+        //统计要开始下载的数量
         addLoading: function() {
             if (this.loading === 0) {
               this.show();
@@ -265,13 +263,15 @@ function _ol3ToolkitInit() {
             ++this.loading;
             this.update();
         },
+        // 统计下载完的数量
         addLoaded: function() {
             var this_ = this;
             setTimeout(function() {
               ++this_.loaded;
               this_.update();
-            }, 10);
+            }, 100);
         },
+        //更新进度条的长度
         update: function() {
             var width = (this.loaded / this.loading * 100).toFixed(1) + '%';
             this.el.style.width = width;
@@ -284,9 +284,11 @@ function _ol3ToolkitInit() {
               }, 500);
             }
         },
+        //显示进度条
         show: function() {
             this.el.style.visibility = 'visible';
         },
+        // 隐藏进度条
         hide: function() {
             if (this.loading === this.loaded) {
               this.el.style.visibility = 'hidden';
@@ -296,6 +298,9 @@ function _ol3ToolkitInit() {
     }
 
 }
+
+
+
 
 
 /**
