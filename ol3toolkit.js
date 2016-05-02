@@ -132,6 +132,7 @@ $(function() {
         map.addControl(new ol.control.OverviewMap({
             tipLabel: '鸟瞰图'
         }));
+        $('.ol-overviewmap').css({"right": ".5em","top": ".5em", "left": "inherit","bottom": "inherit"});
     }
     
     //根据参数判断是否添加比例尺
