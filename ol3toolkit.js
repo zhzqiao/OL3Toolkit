@@ -3,26 +3,26 @@
  */
 
 
-// È·±£jQueryÔÚol3toolkit.jsÇ°¼ÓÔØ
+// ç¡®ä¿jQueryåœ¨ol3toolkit.jså‰åŠ è½½
 if(typeof jQuery === "undefined"){
-    throw new Error("Ê¹ÓÃol3toolkitĞèÒªÏÈ¼ÓÔØjQuery");
+    throw new Error("ä½¿ç”¨ol3toolkitéœ€è¦å…ˆåŠ è½½jQuery");
 }
 
-// È·±£OL3ÔÚol3toolkit.jsÇ°¼ÓÔØ
-// Openlayers±àĞ´Ê±µÄ°æ±¾ÎªV3.15.1
+// ç¡®ä¿OL3åœ¨ol3toolkit.jså‰åŠ è½½
+// Openlayersç¼–å†™æ—¶çš„ç‰ˆæœ¬ä¸ºV3.15.1
 if(typeof ol === "undefined"){
-    throw new Error("Ê¹ÓÃol3toolkitĞèÒªÏÈ¼ÓÔØopenlayers3");
+    throw new Error("ä½¿ç”¨ol3toolkitéœ€è¦å…ˆåŠ è½½openlayers3");
 }
 
-// È·±£µÚÈı·½°üLayerSwitcherÔÚol3toolkit.jsÇ°¼ÓÔØ
+// ç¡®ä¿ç¬¬ä¸‰æ–¹åŒ…LayerSwitcheråœ¨ol3toolkit.jså‰åŠ è½½
 if(typeof ol.control.LayerSwitcher === "undefined"){
-    throw new Error("ÎªÁËÇĞ»»µØÍ¼£¬ÇëÏÈ¼ÓÔØLayerSwitcher");
+    throw new Error("ä¸ºäº†åˆ‡æ¢åœ°å›¾ï¼Œè¯·å…ˆåŠ è½½LayerSwitcher");
 }
 
 /* OL3Toolkit
  *
  * @type Object
- * @description $.OL3ToolkitÊÇOL3¹¤¾ß°üµÄÖ÷Àà,ÓÃÀ´´ò°üÖ´ĞĞ³£ÓÃ¹¦ÄÜ
+ * @description $.OL3Toolkitæ˜¯OL3å·¥å…·åŒ…çš„ä¸»ç±»,ç”¨æ¥æ‰“åŒ…æ‰§è¡Œå¸¸ç”¨åŠŸèƒ½
  *
  */
 $.OL3Toolkit = {};
@@ -32,35 +32,37 @@ $.OL3Toolkit = {};
  * @type {{}}
  */
 $.OL3Toolkit.options = {
-    //¿ìËÙ³õÊ¼»¯
+    //å¿«é€Ÿåˆå§‹åŒ–
     quickCreation: true,
-    //°ó¶¨µÄ<div>Id
+    //ç»‘å®šçš„<div>Id
     targetID: "map",
-    //µØÍ¼ÆğÊ¼ÖĞĞÄ×ø±ê
+    //åœ°å›¾èµ·å§‹ä¸­å¿ƒåæ ‡
     viewCenter: [120.63,30.05],
-    //³õÊ¼µØÍ¼Ëõ·ÅµÈ¼¶
+    //åˆå§‹åœ°å›¾ç¼©æ”¾ç­‰çº§
     zoomLevel: 7,
-    //µ×Í¼Êı¾İÔ´
+    //åº•å›¾æ•°æ®æº
     baseMapSource: ["OSM",'SATELLITE'],
-    //×Ô¶¯°ÑÊäÈëµÄ'EPSG:4326'×ª»»µ½'EPSG:3857/900913'
+    //è‡ªåŠ¨æŠŠè¾“å…¥çš„'EPSG:4326'è½¬æ¢åˆ°'EPSG:3857/900913'
     autoLatLngTransform: true,
-    //µØÍ¼´óĞ¡×ÔÊÊÓ¦
+    //åœ°å›¾å¤§å°è‡ªé€‚åº”
     mapSizeSelfAdaption: true,
-    //¶àµØÍ¼Ô´ÇĞ»»
-    switchMultiMapSources: true,
-    //°üº¬ÍßÆ¬¼ÓÔØ½ø¶ÈÌõ
+    //å¤šåœ°å›¾æºåˆ‡æ¢
+    enableSwitchMultiMapSources: true,
+    //åŒ…å«ç“¦ç‰‡åŠ è½½è¿›åº¦æ¡
     hasProgress: true,
-    //ÏÔÊ¾µãÏßÃæÊı¾İ
+    //æ˜¾ç¤ºç‚¹çº¿é¢æ•°æ®
     drawBasicElements: true,
-    //Äñî«¹¦ÄÜ
-    birdsEye: true,
-    //»Øµ½³õÊ¼ÊÓ½Ç¹¦ÄÜ
-    initialAngle: true,
-    //²âÁ¿¹¦ÄÜ
+    //é¸Ÿç°åŠŸèƒ½
+    showBirdsEye: true,
+    //æ˜¾ç¤ºæ¯”ä¾‹å°º
+    showScaleLine: true,
+    //å®šä½
+    enalblePosition: true,
+    //æµ‹é‡åŠŸèƒ½
     basicMeasure: true,
-    //µØÍ¼ÉÏµ¯³ö´°
+    //åœ°å›¾ä¸Šå¼¹å‡ºçª—
     basicPopup: true,
-    //Ô¤¶¨µãÏßÃæÑùÊ½
+    //é¢„å®šç‚¹çº¿é¢æ ·å¼
     sld: {
         lightBlue: "#3c8dbc",
         red: "#f56954",
@@ -83,45 +85,79 @@ $.OL3Toolkit.options = {
 
 $(function() {
     
-    //Èç¹ûÓĞÆäËû²ÎÊı¶¨Òå£¬ÔòÀ©Õ¹²ÎÊı
+    //å¦‚æœæœ‰å…¶ä»–å‚æ•°å®šä¹‰ï¼Œåˆ™æ‰©å±•å‚æ•°
     if (typeof OL3ToolkitOptions !== "undefined") {
         $.extend(true,
             $.OL3Toolkit.options,
             OL3ToolkitOptions);
     }
 
-    //·½±ãµ÷ÓÃ²ÎÊı
+    //æ–¹ä¾¿è°ƒç”¨å‚æ•°
     var o = $.OL3Toolkit.options;
     
-    //Èç¹ûÒª°üº¬½ø¶ÈÌõµÄ»°£¬ÔÚmapÏÂ·½Ìí¼ÓÒ»¸ö#progressµÄdiv
+    //å¦‚æœè¦åŒ…å«è¿›åº¦æ¡çš„è¯ï¼Œåœ¨mapä¸‹æ–¹æ·»åŠ ä¸€ä¸ª#progressçš„div
     if(o.hasProgress){
-        $("#"+o.targetID).append('<div id="progress"></div>');
+        $("#"+o.targetID).after('<div id="progress"></div>');
     }
 
-    //³õÊ¼»¯¶ÔÏó
+    //åˆå§‹åŒ–å¯¹è±¡
     _ol3ToolkitInit();
-    
+
+    //å¿«é€Ÿç”Ÿæˆåœ°å›¾
     if(o.quickCreation){
         $.OL3Toolkit.createMap.activate();
     }
 
-    //ÓÉÓÚ²ÉÓÃµÄÄ£°åÊÇalmasaeed2010/AdminLTE
+    //ç”±äºé‡‡ç”¨çš„æ¨¡æ¿æ˜¯almasaeed2010/AdminLTE
     //https://github.com/almasaeed2010/AdminLTE
-    //ËùÒÔĞèÒª×ÔÊÊÓ¦µÄÄÚÈİÌîĞ´'.content-wrapper'
+    //æ‰€ä»¥éœ€è¦è‡ªé€‚åº”çš„å†…å®¹å¡«å†™'.content-wrapper'
     if(o.mapSizeSelfAdaption){
         $.OL3Toolkit.sizeSelfAdaption.activate('.content-wrapper');
     }
 
+    //æ ¹æ®å‚æ•°åˆ¤æ–­æ˜¯å¦æ˜¯å¦å…è®¸åˆ‡æ¢åœ°å›¾åŠŸèƒ½
+    if(o.enableSwitchMultiMapSources){
+        map.addControl(new ol.control.LayerSwitcher());
+    }
 
+    //æ ¹æ®å‚æ•°åˆ¤æ–­æ˜¯å¦æ·»åŠ é¸Ÿç°åŠŸèƒ½
+    if(o.showBirdsEye){
+        map.addControl(new ol.control.OverviewMap({
+            tipLabel: 'é¸Ÿç°å›¾'
+        }));
+    }
 
-    map.addControl(new ol.control.LayerSwitcher());
+    //æ ¹æ®å‚æ•°åˆ¤æ–­æ˜¯å¦æ·»åŠ é¸Ÿç°åŠŸèƒ½
+    if(o.showBirdsEye){
+        map.addControl(new ol.control.OverviewMap({
+            tipLabel: 'é¸Ÿç°å›¾'
+        }));
+    }
+    
+    //æ ¹æ®å‚æ•°åˆ¤æ–­æ˜¯å¦æ·»åŠ æ¯”ä¾‹å°º
+    if(o.showScaleLine){
+        map.addControl(new ol.control.ScaleLine());
+    }
+
+    //æ ¹æ®å‚æ•°åˆ¤æ–­æ˜¯å¦æ·»åŠ å®šä½åŠŸèƒ½
+    //to-doï¼šæ”¹ä¸ºæ ¹æ®å½“å‰ä½ç½®
+    if(o.enalblePosition){
+        map.addControl(new ol.control.ZoomToExtent({
+            extent: ol.proj.transformExtent([120.49, 29.88, 120.77, 30.13], 'EPSG:4326', 'EPSG:3857'),
+            label: 'o',
+            tipLabel: 'é‡æ–°å®šä½'
+            })
+        );
+        // geolocation.getPosition();
+    }
+
 })
 
 /**
  * ----------------------
- * - ³õÊ¼»¯OL3Toolkit¶ÔÏó -
+ * - åˆå§‹åŒ–OL3Toolkitå¯¹è±¡ -
  * ----------------------
- * ËùÓĞOL3Toolkit¹¦ÄÜÔÚÆäÖ´ĞĞ
+ * æ‰€æœ‰OL3ToolkitåŠŸèƒ½åœ¨å…¶æ‰§è¡Œ
  * @private
  */
 function _ol3ToolkitInit() {
@@ -130,7 +166,7 @@ function _ol3ToolkitInit() {
     $.OL3Toolkit.mapSources = {
         SATELLITE: function () {
             return new ol.layer.Tile({
-                title: 'ÎÀĞÇÊı¾İ',
+                title: 'å«æ˜Ÿæ•°æ®',
                 type: 'base',
                 visible: false,
                 source: new ol.source.MapQuest({
@@ -149,18 +185,18 @@ function _ol3ToolkitInit() {
     };
 
     /**
-     * ´´½¨¼òµ¥µØÍ¼
+     * åˆ›å»ºç®€å•åœ°å›¾
      * ==========
-     * Ö»ĞèÊäÈë°ó¶¨ID
+     * åªéœ€è¾“å…¥ç»‘å®šID
      * 
      * @type {{activate: $.OL3Toolkit.createMap.activate}}
      */
     $.OL3Toolkit.createMap = {
         activate: function(){
             var _this = this;
-            //·½±ãµ÷ÓÃ²ÎÊı
+            //æ–¹ä¾¿è°ƒç”¨å‚æ•°
             var o = $.OL3Toolkit.options;
-            //Èç¹û¿ªÆô×Ô¶¯×ª»»¾­Î³¶È£¬ÇÒ²ÎÊıÕıÈ·£¬Ôò°Ñ¾­Î³¶È×ª»»³É±ê×¼×ø±ê²Î¿¼Ïµ
+            //å¦‚æœå¼€å¯è‡ªåŠ¨è½¬æ¢ç»çº¬åº¦ï¼Œä¸”å‚æ•°æ­£ç¡®ï¼Œåˆ™æŠŠç»çº¬åº¦è½¬æ¢æˆæ ‡å‡†åæ ‡å‚è€ƒç³»
             if($.OL3Toolkit.options.autoLatLngTransform && o.viewCenter[0] <= 180 && o.viewCenter[0] >= -180 && o.viewCenter[1] <= 90 && o.viewCenter[1] >= -90){
                 o.viewCenter = ol.proj.transform(o.viewCenter, 'EPSG:4326', 'EPSG:3857')
             }
@@ -173,19 +209,19 @@ function _ol3ToolkitInit() {
                 })
             });
         },
-        // ×é×°³É×îÖÕµÄÍ¼²ã
+        // ç»„è£…æˆæœ€ç»ˆçš„å›¾å±‚
         createLayers: function(baseSource){
             var _this = this;
             
             var baseMaps = new ol.layer.Group({
-                'title': 'µ×Í¼Êı¾İ',
+                'title': 'åº•å›¾æ•°æ®',
                 layers: _this.traverseMapSources(baseSource)
             });
             var overlays = new ol.layer.Group({
-                title: 'µş¼ÓÍ¼²ã',
+                title: 'å åŠ å›¾å±‚',
                 layers: [
                     new ol.layer.Tile({
-                        title: '¹ú½ç',
+                        title: 'å›½ç•Œ',
                         source: new ol.source.TileWMS({
                             url: 'http://demo.opengeo.org/geoserver/wms',
                             params: {'LAYERS': 'ne:ne_10m_admin_1_states_provinces_lines_shp'},
@@ -196,13 +232,14 @@ function _ol3ToolkitInit() {
             });
             return [baseMaps,overlays];
         },
-        // ±éÀú²ÎÊı£¬×é×°³Éµ×Í¼Í¼²ã
+        // éå†å‚æ•°ï¼Œç»„è£…æˆåº•å›¾å›¾å±‚
         traverseMapSources: function (neededMapSources) {
             var finalBaselayers = [];
-            //Èç¹û$.OL3Toolkit.mapSourcesÖĞÓĞĞèÒªµÄµ×Í¼£¬Ôò×é×°³Éµ×Í¼Í¼²ã×é
+            //å¦‚æœ$.OL3Toolkit.mapSourcesä¸­æœ‰éœ€è¦çš„åº•å›¾ï¼Œåˆ™ç»„è£…æˆåº•å›¾å›¾å±‚ç»„
             for(var item in $.OL3Toolkit.mapSources){
                 if(neededMapSources.includes(item)){
                     var source = $.OL3Toolkit.mapSources[item]();
+                    //æ·»åŠ è¿›åº¦æ¡
                     if($.OL3Toolkit.options.hasProgress){
                         $.OL3Toolkit.progress.activate(source);
                     }                    
@@ -217,16 +254,16 @@ function _ol3ToolkitInit() {
     $.OL3Toolkit.sizeSelfAdaption = {
         activate: function (outerClass) {
             var outerElem;
-            //µ±Ã»ÓĞ´«ÈëÍâ²¿Àà²ÎÊı£¬»òËù´«ÈëµÄÍâ²¿Àà²»´æÔÚÊ±£¬×Ô¶¯Ñ°ÕÒÍâ²¿Àà
+            //å½“æ²¡æœ‰ä¼ å…¥å¤–éƒ¨ç±»å‚æ•°ï¼Œæˆ–æ‰€ä¼ å…¥çš„å¤–éƒ¨ç±»ä¸å­˜åœ¨æ—¶ï¼Œè‡ªåŠ¨å¯»æ‰¾å¤–éƒ¨ç±»
             if(outerClass==undefined||$(outerClass).length==0){
                 outerElem = $('#map').parent();
             }else{
                 outerElem = $(outerClass);
             }
-            //³õÊ¼Ê±µ÷Õû
+            //åˆå§‹æ—¶è°ƒæ•´
             var _this = this;
             _this.fix(outerElem);
-            //¸Ä±ä´°¿Ú´óĞ¡Ê±ÔÙ´Îµ÷Õû
+            //æ”¹å˜çª—å£å¤§å°æ—¶å†æ¬¡è°ƒæ•´
             outerElem.resize(function () {
                 _this.fix(outerElem);
             });
@@ -236,9 +273,9 @@ function _ol3ToolkitInit() {
         }
     };
 
-    //ÍßÆ¬¼ÓÔØ½ø¶ÈÌõ¹¤¾ß
+    //ç“¦ç‰‡åŠ è½½è¿›åº¦æ¡å·¥å…·
     $.OL3Toolkit.progress = {
-        //ÊäÈëÒªÉú³É½ø¶ÈÌõµÄol.source
+        //è¾“å…¥è¦ç”Ÿæˆè¿›åº¦æ¡çš„ol.source
         activate: function(linkedSource) {
             var this_ = this;
             this_.el = document.getElementById('progress');
@@ -255,7 +292,7 @@ function _ol3ToolkitInit() {
                 this_.addLoaded();
             });
         },
-        //Í³¼ÆÒª¿ªÊ¼ÏÂÔØµÄÊıÁ¿
+        //ç»Ÿè®¡è¦å¼€å§‹ä¸‹è½½çš„æ•°é‡
         addLoading: function() {
             if (this.loading === 0) {
               this.show();
@@ -263,7 +300,7 @@ function _ol3ToolkitInit() {
             ++this.loading;
             this.update();
         },
-        // Í³¼ÆÏÂÔØÍêµÄÊıÁ¿
+        // ç»Ÿè®¡ä¸‹è½½å®Œçš„æ•°é‡
         addLoaded: function() {
             var this_ = this;
             setTimeout(function() {
@@ -271,7 +308,7 @@ function _ol3ToolkitInit() {
               this_.update();
             }, 100);
         },
-        //¸üĞÂ½ø¶ÈÌõµÄ³¤¶È
+        //æ›´æ–°è¿›åº¦æ¡çš„é•¿åº¦
         update: function() {
             var width = (this.loaded / this.loading * 100).toFixed(1) + '%';
             this.el.style.width = width;
@@ -284,11 +321,11 @@ function _ol3ToolkitInit() {
               }, 500);
             }
         },
-        //ÏÔÊ¾½ø¶ÈÌõ
+        //æ˜¾ç¤ºè¿›åº¦æ¡
         show: function() {
             this.el.style.visibility = 'visible';
         },
-        // Òş²Ø½ø¶ÈÌõ
+        // éšè—è¿›åº¦æ¡
         hide: function() {
             if (this.loading === this.loaded) {
               this.el.style.visibility = 'hidden';
@@ -304,22 +341,22 @@ function _ol3ToolkitInit() {
 
 
 /**
- * ÒÔÏÂ»ùÓÚ´úÂëÔ´ÓÚcowboy/jquery-resize
+ * ä»¥ä¸‹åŸºäºä»£ç æºäºcowboy/jquery-resize
  * https://github.com/cowboy/jquery-resize
- * ÔİÊ±Ô­·â²»¶¯µÄÓÃ×Å£¬¿´ºóÆÚÓĞÉ¶¸Ä¶¯
+ * æš‚æ—¶åŸå°ä¸åŠ¨çš„ç”¨ç€ï¼Œçœ‹åæœŸæœ‰å•¥æ”¹åŠ¨
  */
 (function($,window,undefined){
-    '$:nomunge'; // YUI compressorÊ¹ÓÃ²ÎÊı.
+    '$:nomunge'; // YUI compressorä½¿ç”¨å‚æ•°.
 
-    // Ò»¸öjQuery¶ÔÏó°üº¬ËùÓĞÒªÓÃresize·½·¨µÄ·ÇwindowÔªËØ
+    // ä¸€ä¸ªjQueryå¯¹è±¡åŒ…å«æ‰€æœ‰è¦ç”¨resizeæ–¹æ³•çš„éwindowå…ƒç´ 
     var elems = $([]),
 
-    // Èç¹û$.resize ´æÔÚÔò¼Ì³Ğ, ·ñÔò´´½¨Ò»¸ö.
+    // å¦‚æœ$.resize å­˜åœ¨åˆ™ç»§æ‰¿, å¦åˆ™åˆ›å»ºä¸€ä¸ª.
         jq_resize = $.resize = $.extend( $.resize, {} ),
 
         timeout_id,
 
-    // ÖØ¸´ÀûÓÃµÄ×Ö¶Î.
+    // é‡å¤åˆ©ç”¨çš„å­—æ®µ.
         str_setTimeout = 'setTimeout',
         str_resize = 'resize',
         str_data = str_resize + '-special-event',
