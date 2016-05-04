@@ -1,3 +1,76 @@
+
+ol.control.CustomZoomTo = function(opt_options){
+    var options = opt_options || {};
+
+    var button = document.createElement('button');
+    button.innerHTML = 'o';
+
+    var this_ = this;
+
+    button.onclick = function(e) {
+        e = e || window.event;
+        if($.OL3Toolkit.options.enalblePosition){
+            $.OL3Toolkit.getLocation.activate();
+        }else {
+            this_.getMap().getView().centerOn($.OL3Toolkit.options.viewCenter, this_.getMap().getSize(), [570,500]);
+        }
+        e.preventDefault();
+    };
+
+    var element = document.createElement('div');
+    element.className = 'ol3toolkit-location ol-unselectable ol-control';
+    element.appendChild(button);
+
+    ol.control.Control.call(this, {
+        element: element,
+        target: options.target
+    });
+
+}
+
+
+
+ol.control.CustomZoomTo.prototype.getLocation = function (map, viewCenter) {
+    var geolocation = new ol.Geolocation();
+    geolocation.setTracking(true);
+    geolocation.on('error', function(error) {
+        alert(error.message);
+        return false;
+    });
+
+    var accuracyFeature = new ol.Feature();
+    geolocation.on('change:accuracyGeometry', function() {
+        accuracyFeature.setGeometry(geolocation.getAccuracyGeometry());
+    });
+
+    var positionFeature = new ol.Feature();
+    positionFeature.setStyle(new ol.style.Style({
+        image: new ol.style.Circle({
+            radius: 6,
+            fill: new ol.style.Fill({
+                color: '#3399CC'
+            }),
+            stroke: new ol.style.Stroke({
+                color: '#fff',
+                width: 2
+            })
+        })
+    }));
+
+    geolocation.on('change:position', function(map) {
+        var coordinates = geolocation.getPosition();
+        positionFeature.setGeometry(coordinates ?
+            new ol.geom.Point(coordinates) : null);
+        map.getView().centerOn(ol.proj.transform(coordinates,"EPSG:4326","EPSG:3857"));
+    });
+
+    new ol.layer.Vector({
+        map: map,
+        source: new ol.source.Vector({
+            features: [accuracyFeature, positionFeature]
+        })
+    });
+}
 /**
  * Created by zzq on 2016/4/26.
  */
@@ -56,8 +129,11 @@ $.OL3Toolkit.options = {
     showBirdsEye: true,
     //显示比例尺
     showScaleLine: true,
+    //一个定位控件，优先当前位置，若不支持则回到初始视角
     //定位
     enalblePosition: true,
+    //回到初始视角
+    backOriginView: true,
     //测量功能
     basicMeasure: true,
     //地图上弹出窗
@@ -101,7 +177,7 @@ $(function() {
     }
 
     //初始化对象
-    _ol3ToolkitInit();
+    ol3ToolkitInit_();
 
     //快速生成地图
     if(o.quickCreation){
@@ -125,13 +201,7 @@ $(function() {
         map.addControl(new ol.control.OverviewMap({
             tipLabel: '鸟瞰图'
         }));
-    }
-
-    //根据参数判断是否添加鸟瞰功能
-    if(o.showBirdsEye){
-        map.addControl(new ol.control.OverviewMap({
-            tipLabel: '鸟瞰图'
-        }));
+        //设置样式
         $('.ol-overviewmap').css({"right": ".5em","top": ".5em", "left": "inherit","bottom": "inherit"});
     }
     
@@ -142,17 +212,14 @@ $(function() {
 
     //根据参数判断是否添加定位功能
     //to-do：改为根据当前位置
-    if(o.enalblePosition){
-        map.addControl(new ol.control.ZoomToExtent({
-            extent: ol.proj.transformExtent([120.49, 29.88, 120.77, 30.13], 'EPSG:4326', 'EPSG:3857'),
-            label: 'o',
-            tipLabel: '重新定位'
-            })
-        );
-        // geolocation.getPosition();
+    if(o.enalblePosition||o.backOriginView){
+        ol.inherits(ol.control.CustomZoomTo, ol.control.Control);
+        map.addControl(new ol.control.CustomZoomTo());
     }
 
 })
+
+
 
 /**
  * ----------------------
@@ -161,7 +228,7 @@ $(function() {
  * 所有OL3Toolkit功能在其执行
  * @private
  */
-function _ol3ToolkitInit() {
+function ol3ToolkitInit_() {
 
 
     $.OL3Toolkit.mapSources = {
@@ -194,7 +261,7 @@ function _ol3ToolkitInit() {
      */
     $.OL3Toolkit.createMap = {
         activate: function(){
-            var _this = this;
+            var this_ = this;
             //方便调用参数
             var o = $.OL3Toolkit.options;
             //如果开启自动转换经纬度，且参数正确，则把经纬度转换成标准坐标参考系
@@ -202,7 +269,7 @@ function _ol3ToolkitInit() {
                 o.viewCenter = ol.proj.transform(o.viewCenter, 'EPSG:4326', 'EPSG:3857')
             }
             map = new ol.Map({
-                layers: _this.createLayers(o.baseMapSource),
+                layers: this_.createLayers(o.baseMapSource),
                 target: o.targetID,
                 view: new ol.View({
                     center:o.viewCenter,
@@ -212,11 +279,11 @@ function _ol3ToolkitInit() {
         },
         // 组装成最终的图层
         createLayers: function(baseSource){
-            var _this = this;
+            var this_ = this;
             
             var baseMaps = new ol.layer.Group({
                 'title': '底图数据',
-                layers: _this.traverseMapSources(baseSource)
+                layers: this_.traverseMapSources(baseSource)
             });
             var overlays = new ol.layer.Group({
                 title: '叠加图层',
@@ -262,15 +329,15 @@ function _ol3ToolkitInit() {
                 outerElem = $(outerClass);
             }
             //初始时调整
-            var _this = this;
-            _this.fix(outerElem);
+            var this_ = this;
+            this_.fix(outerElem);
             //改变窗口大小时再次调整
             outerElem.resize(function () {
-                _this.fix(outerElem);
+                this_.fix(outerElem);
             });
         },
         fix: function (outerElem) {
-            map.setSize([outerElem.width(),$(window).height() - $('.main-footer').outerHeight() - $('.main-header').outerHeight() - 5])
+            map.setSize([outerElem.width(),$(window).height() - $('.main-footer').outerHeight() - $('.main-header').outerHeight() - 8])
         }
     };
 
@@ -333,10 +400,52 @@ function _ol3ToolkitInit() {
               this.el.style.width = 0;
             }
         }
+    };
+
+    $.OL3Toolkit.getLocation = {
+        activate: function () {
+            var geolocation = new ol.Geolocation();
+            geolocation.setTracking(true);
+            geolocation.on('error', function(error) {
+                alert(error.message);
+            });
+
+            var accuracyFeature = new ol.Feature();
+            geolocation.on('change:accuracyGeometry', function() {
+                accuracyFeature.setGeometry(geolocation.getAccuracyGeometry());
+            });
+
+            var positionFeature = new ol.Feature();
+            positionFeature.setStyle(new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 6,
+                    fill: new ol.style.Fill({
+                        color: '#3399CC'
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: '#fff',
+                        width: 2
+                    })
+                })
+            }));
+
+            geolocation.on('change:position', function() {
+                var coordinates = geolocation.getPosition();
+                positionFeature.setGeometry(coordinates ?
+                    new ol.geom.Point(coordinates) : null);
+                map.getView().centerOn(ol.proj.transform(coordinates, "EPSG:4326", "EPSG:3857"), map.getSize(), [570, 500]);
+            });
+
+            new ol.layer.Vector({
+                map: map,
+                source: new ol.source.Vector({
+                    features: [accuracyFeature, positionFeature]
+                })
+            });
+        }
     }
 
 }
-
 
 
 

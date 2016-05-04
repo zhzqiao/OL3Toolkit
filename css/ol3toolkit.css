@@ -1,15 +1,24 @@
 .map {
   background: #E0ECED;
 }
-.wrapper {
-  position: relative;
-}
 #progress {
-  position: absolute;
   bottom: 0;
   left: 0;
   height: 3px;
   background: rgba(135, 206, 235, 0.7);
   width: 0;
   transition: width 250ms;
+}
+.ol-overviewmap {
+  right: .5em;
+  top: .5em;
+  left: inherit;
+  bottom: inherit;
+}
+.ol3toolkit-location {
+  top: 65px;
+  left: .5em;
+}
+.ol-touch .ol3toolkit-location {
+  top: 80px;
 }
