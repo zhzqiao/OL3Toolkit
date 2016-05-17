@@ -186,12 +186,19 @@ $(function() {
         $.OL3Toolkit.createMap.activate();
     }
     //如果包含百度地图则需动态调整
-    if(true){
+    map.getLayers().getArray()[0].getLayers().getArray().forEach(function(layer){
+        if(layer.get("title")=="百度地图"){
+            ol3view.on('change:center',function(event){
+                layer.getSource().tileGrid = $.OL3Toolkit.Translate.BDtilegrid();
+            })
+        }
+    })
+/*    if(true){
         ol3view.on('change:center',function(event){
             map.getLayer().getSource().tileGrid = $.OL3Toolkit.mapSources.BAIDU.tilegrid();
             // baiduSource.tileGrid = tilegrid();
         })
-    }
+    }*/
 
     //由于采用的模板是almasaeed2010/AdminLTE
     //https://github.com/almasaeed2010/AdminLTE
@@ -252,7 +259,29 @@ function isStr(T) {
  */
 function ol3ToolkitInit_() {
     //坐标转换工具
-    $.OL3Toolkit.Translate = {};
+    $.OL3Toolkit.Translate = {
+        BDtilegrid: function(){
+            var Convertor = $.OL3Toolkit.Translate;
+            // 自定义分辨率和瓦片坐标系
+            var resolutions = [];
+            var maxZoom = 18;
+            // 计算百度使用的分辨率
+            for(var i=0; i<=maxZoom; i++){
+                resolutions[i] = Math.pow(2, maxZoom-i);
+            }
+            return new ol.tilegrid.TileGrid({
+                origin: (function() {
+                    //ol3view全局变量，这儿有点问题
+                    var epsg3857Center = ol3view.getCenter();
+                    var epsg4326Center = ol.proj.transform(epsg3857Center,'EPSG:3857','EPSG:4326');
+                    var baiduCoord = Convertor.ll_Mercator.convertLL2MC(epsg4326Center);
+                    var baiduCoord2 = ol.proj.transform(Convertor.latlng.mars_baidu(Convertor.latlng.nor_mars(epsg4326Center)),'EPSG:4326','EPSG:3857');
+                    return [2*epsg3857Center[0]-baiduCoord[0]-baiduCoord2[0],2*epsg3857Center[1]-baiduCoord[1]-baiduCoord2[1]]
+                })(),    // 设置原点坐标
+                resolutions: resolutions  // 设置分辨率
+            })
+        }
+    };
     $.OL3Toolkit.Translate.latlng = {
         pi : 3.14159265358979324,
         x_pi : 52.35987755982988, //pi * 3000.0 / 180.0,
@@ -431,15 +460,24 @@ function ol3ToolkitInit_() {
             }
 
             var urlTemplate = 'http://p3.map.gtimg.com/maptilesv3/{z}/{qqx}/{qqy}/{x}_{y}.png?version=20150501';
-            var tilegrid = new ol.tilegrid.TileGrid({
-                origin: ol.extent.getBottomLeft(projectionExtent),
-                resolutions: resolutions,
-                tileSize: 256
-            });
+            tilegrid=function (){
+                var Convertor = $.OL3Toolkit.Translate;
+                return new ol.tilegrid.TileGrid({
+                    origin: (function() {
+                        //ol3view全局变量，这儿有点问题
+                        var qqOrigin = ol.extent.getBottomLeft(projectionExtent);
+                        var epsg3857Center = ol3view.getCenter();
+                        var epsg4326Center = ol.proj.transform(epsg3857Center,'EPSG:3857','EPSG:4326');
+                        var qqCoord = ol.proj.transform(Convertor.latlng.nor_mars(epsg4326Center),'EPSG:4326','EPSG:3857');
+                        return [qqOrigin[0]+epsg3857Center[0]-qqCoord[0],qqOrigin[1]+epsg3857Center[1]-qqCoord[1]]
+                    })(),    // 设置原点坐标
+                    resolutions: resolutions  // 设置分辨率
+                })
+            }
             var tilesource = new ol.source.TileImage({
                 attributions: [attribution],
                 projection: projection,
-                tileGrid: tilegrid,
+                tileGrid: tilegrid(),
                 tileUrlFunction: function (xyz, pixelRatio, projection) {
                     if (!xyz) {
                         return "";
@@ -471,18 +509,12 @@ function ol3ToolkitInit_() {
             });
         },
         BAIDU: function(){
-            // 自定义分辨率和瓦片坐标系
-            var resolutions = [];
-            var maxZoom = 18;
+            
             var attribution = new ol.Attribution({
                 html: 'Copyright:&copy; 2015 百度地图'
             });
-
-            // 计算百度使用的分辨率
-            for(var i=0; i<=maxZoom; i++){
-                resolutions[i] = Math.pow(2, maxZoom-i);
-            }
-            function tilegrid(){
+            
+            /*tilegrid=function (){
                 var Convertor = $.OL3Toolkit.Translate;
                 return new ol.tilegrid.TileGrid({
                     origin: (function() {
@@ -495,17 +527,16 @@ function ol3ToolkitInit_() {
                     })(),    // 设置原点坐标
                     resolutions: resolutions  // 设置分辨率
                 })
-            }
+            }*/
             // 创建百度地图的数据源
             var baiduSource = new ol.source.TileImage({
                 attributions: [attribution],
                 projection: 'EPSG:3857',
-                tileGrid: tilegrid(),
+                tileGrid: $.OL3Toolkit.Translate.BDtilegrid(),
                 tileUrlFunction: function(tileCoord, pixelRatio, proj){
                     var z = tileCoord[0];
                     var x = tileCoord[1];
                     var y = tileCoord[2];
-
                     // 百度瓦片服务url将负数使用M前缀来标识
                     if(x<0){
                         x = 'M' + (-x);
@@ -582,13 +613,15 @@ function ol3ToolkitInit_() {
             var finalBaselayers = [];
             //如果$.OL3Toolkit.mapSources中有需要的底图，则组装成底图图层组
             for(var item in $.OL3Toolkit.mapSources){
-                if(neededMapSources.includes(item)){
-                    var source = $.OL3Toolkit.mapSources[item]();
-                    //添加进度条
-                    if($.OL3Toolkit.options.hasProgress){
-                        $.OL3Toolkit.progress.activate(source);
-                    }                    
-                    finalBaselayers.push(source);
+                for(var i=0;i<neededMapSources.length;i++){
+                    if(neededMapSources[i]==item){
+                        var source = $.OL3Toolkit.mapSources[item]();
+                        //添加进度条
+                        if($.OL3Toolkit.options.hasProgress){
+                            $.OL3Toolkit.progress.activate(source);
+                        }                    
+                        finalBaselayers.push(source);
+                    }
                 }
             }
             return finalBaselayers;
