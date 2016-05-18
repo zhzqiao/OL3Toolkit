@@ -192,6 +192,11 @@ $(function() {
                 layer.getSource().tileGrid = $.OL3Toolkit.Translate.BDtilegrid();
             })
         }
+        if(layer.get("title")=="腾讯地图"){
+            ol3view.on('change:center',function(event){
+                layer.getSource().tileGrid = $.OL3Toolkit.Translate.QQtilegrid();
+            })
+        }
     })
 /*    if(true){
         ol3view.on('change:center',function(event){
@@ -277,6 +282,32 @@ function ol3ToolkitInit_() {
                     var baiduCoord = Convertor.ll_Mercator.convertLL2MC(epsg4326Center);
                     var baiduCoord2 = ol.proj.transform(Convertor.latlng.mars_baidu(Convertor.latlng.nor_mars(epsg4326Center)),'EPSG:4326','EPSG:3857');
                     return [2*epsg3857Center[0]-baiduCoord[0]-baiduCoord2[0],2*epsg3857Center[1]-baiduCoord[1]-baiduCoord2[1]]
+                })(),    // 设置原点坐标
+                resolutions: resolutions  // 设置分辨率
+            })
+        },
+        QQtilegrid: function(){
+            var Convertor = $.OL3Toolkit.Translate;
+            // 自定义分辨率和瓦片坐标系
+            var resolutions = [];
+            var projection = ol.proj.get('EPSG:3857');
+            var projectionExtent = projection.getExtent();
+
+            var tileSize = 256;
+
+            var maxResolution = ol.extent.getWidth(projectionExtent) / tileSize;
+            var z;
+            for (z = 0; z < 22; ++z) {
+                resolutions[z] = maxResolution / Math.pow(2, z);
+            }
+            return new ol.tilegrid.TileGrid({
+                origin: (function() {
+                    //ol3view全局变量，这儿有点问题
+                    var qqOrigin = ol.extent.getBottomLeft(projectionExtent);
+                    var epsg3857Center = ol3view.getCenter();
+                    var epsg4326Center = ol.proj.transform(epsg3857Center,'EPSG:3857','EPSG:4326');
+                    var qqCoord = ol.proj.transform(Convertor.latlng.nor_mars(epsg4326Center),'EPSG:4326','EPSG:3857');
+                    return [qqOrigin[0]+epsg3857Center[0]-qqCoord[0],qqOrigin[1]+epsg3857Center[1]-qqCoord[1]]
                 })(),    // 设置原点坐标
                 resolutions: resolutions  // 设置分辨率
             })
@@ -444,40 +475,15 @@ function ol3ToolkitInit_() {
             });
         },
         QQ: function () {
-            var resolutions = [];
             var attribution = new ol.Attribution({
                 html: 'Copyright:&copy; 2015 腾讯地图'
             });
-            var projection = ol.proj.get('EPSG:3857');
-            var projectionExtent = projection.getExtent();
-
-            var tileSize = 256;
-
-            var maxResolution = ol.extent.getWidth(projectionExtent) / tileSize;
-            var z;
-            for (z = 0; z < 22; ++z) {
-                resolutions[z] = maxResolution / Math.pow(2, z);
-            }
 
             var urlTemplate = 'http://p3.map.gtimg.com/maptilesv3/{z}/{qqx}/{qqy}/{x}_{y}.png?version=20150501';
-            tilegrid=function (){
-                var Convertor = $.OL3Toolkit.Translate;
-                return new ol.tilegrid.TileGrid({
-                    origin: (function() {
-                        //ol3view全局变量，这儿有点问题
-                        var qqOrigin = ol.extent.getBottomLeft(projectionExtent);
-                        var epsg3857Center = ol3view.getCenter();
-                        var epsg4326Center = ol.proj.transform(epsg3857Center,'EPSG:3857','EPSG:4326');
-                        var qqCoord = ol.proj.transform(Convertor.latlng.nor_mars(epsg4326Center),'EPSG:4326','EPSG:3857');
-                        return [qqOrigin[0]+epsg3857Center[0]-qqCoord[0],qqOrigin[1]+epsg3857Center[1]-qqCoord[1]]
-                    })(),    // 设置原点坐标
-                    resolutions: resolutions  // 设置分辨率
-                })
-            }
             var tilesource = new ol.source.TileImage({
                 attributions: [attribution],
-                projection: projection,
-                tileGrid: tilegrid(),
+                // projection: ol.proj.get('EPSG:3857'),
+                tileGrid: $.OL3Toolkit.Translate.QQtilegrid(),
                 tileUrlFunction: function (xyz, pixelRatio, projection) {
                     if (!xyz) {
                         return "";
@@ -504,7 +510,6 @@ function ol3ToolkitInit_() {
                 title: '腾讯地图',
                 type: 'base',
                 visible: true,
-                extent: projectionExtent,
                 source: tilesource
             });
         },
@@ -513,21 +518,6 @@ function ol3ToolkitInit_() {
             var attribution = new ol.Attribution({
                 html: 'Copyright:&copy; 2015 百度地图'
             });
-            
-            /*tilegrid=function (){
-                var Convertor = $.OL3Toolkit.Translate;
-                return new ol.tilegrid.TileGrid({
-                    origin: (function() {
-                        //ol3view全局变量，这儿有点问题
-                        var epsg3857Center = ol3view.getCenter();
-                        var epsg4326Center = ol.proj.transform(epsg3857Center,'EPSG:3857','EPSG:4326');
-                        var baiduCoord = Convertor.ll_Mercator.convertLL2MC(epsg4326Center);
-                        var baiduCoord2 = ol.proj.transform(Convertor.latlng.nor_mars(Convertor.latlng.mars_baidu(epsg4326Center)),'EPSG:4326','EPSG:3857');
-                        return [2*epsg3857Center[0]-baiduCoord[0]-baiduCoord2[0],2*epsg3857Center[1]-baiduCoord[1]-baiduCoord2[1]]
-                    })(),    // 设置原点坐标
-                    resolutions: resolutions  // 设置分辨率
-                })
-            }*/
             // 创建百度地图的数据源
             var baiduSource = new ol.source.TileImage({
                 attributions: [attribution],
