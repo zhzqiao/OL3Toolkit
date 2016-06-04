@@ -116,7 +116,9 @@ $.OL3Toolkit.options = {
     //初始地图缩放等级
     zoomLevel: 7,
     //底图数据源
-    baseMapSource: ["OSM",'SATELLITE','QQ','BAIDU'],
+    baseMapSources: ["OSM",'SATELLITE','QQ','BAIDU'],
+    //自定义数据源
+    customSources: {},
     //自动把输入的'EPSG:4326'转换到'EPSG:3857/900913'
     autoLatLngTransform: true,
     //地图大小自适应
@@ -458,11 +460,18 @@ function ol3ToolkitInit_() {
     $.OL3Toolkit.mapSources = {
         SATELLITE: function () {
             return new ol.layer.Tile({
-                title: '基础卫星',
+                title: '高分卫星',
                 type: 'base',
                 visible: false,
-                source: new ol.source.MapQuest({
-                    layer: 'sat'
+                source: new ol.source.TileWMS({
+                    ratio: 1,
+                    // extent: bounds,
+                    url: 'http://120.26.39.24/geoserver/sx/wms',
+                    params: {
+                        'VERSION': '1.1.1',
+                        STYLES: '',
+                        LAYERS: 'sx:sx_city_GF',
+                    }
                 })
             });
         },
@@ -571,7 +580,7 @@ function ol3ToolkitInit_() {
             });
             map = new ol.Map({
                 view: ol3view,
-                layers: this_.createLayers(o.baseMapSource),
+                layers: this_.createLayers(o.baseMapSources),
                 target: o.targetID
             });
         },
@@ -581,38 +590,33 @@ function ol3ToolkitInit_() {
             
             var baseMaps = new ol.layer.Group({
                 'title': '底图数据',
-                layers: this_.traverseMapSources(baseSource)
+                layers: this_.traverseMapSources($.OL3Toolkit.mapSources, baseSource)
             });
             var overlays = new ol.layer.Group({
                 title: '叠加图层',
-                layers: [
-                    new ol.layer.Tile({
-                        title: '省界',
-                        source: new ol.source.TileWMS({
-                            url: 'http://demo.opengeo.org/geoserver/wms',
-                            params: {'LAYERS': 'ne:ne_10m_admin_1_states_provinces_lines_shp'},
-                            serverType: 'geoserver'
-                        })
-                    })
-                ]
+                layers: this_.traverseMapSources($.OL3Toolkit.options.customSources)
             });
             return [baseMaps,overlays];
         },
         // 遍历参数，组装成底图图层
-        traverseMapSources: function (neededMapSources) {
+        traverseMapSources: function (exitMapSources, neededMapSources) {
             var finalBaselayers = [];
-            //如果$.OL3Toolkit.mapSources中有需要的底图，则组装成底图图层组
-            for(var item in $.OL3Toolkit.mapSources){
-                for(var i=0;i<neededMapSources.length;i++){
-                    if(neededMapSources[i]==item){
-                        var source = $.OL3Toolkit.mapSources[item]();
-                        //添加进度条
-                        if($.OL3Toolkit.options.hasProgress){
-                            $.OL3Toolkit.progress.activate(source);
-                        }                    
-                        finalBaselayers.push(source);
+            //如果exitMapSources中有需要的底图，则组装成底图图层组
+            for(var item in exitMapSources){
+                if(neededMapSources==undefined){
+                    finalBaselayers.push(exitMapSources[item]());
+                }else{
+                    for(var i=0;i<neededMapSources.length;i++){
+                        if(neededMapSources[i]==item){
+                            var source = exitMapSources[item]();
+                            //添加进度条
+                            if($.OL3Toolkit.options.hasProgress){
+                                $.OL3Toolkit.progress.activate(source);
+                            }                    
+                            finalBaselayers.push(source);
+                        }
                     }
-                }
+                }                
             }
             return finalBaselayers;
         }

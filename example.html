@@ -1,8 +1,8 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-	<meta charset="utf-8">
-	<meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1">
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1">
     <title>OL3Toolkit 使用简例</title>
     <link rel="stylesheet" href="css/ol.css" type="text/css">
     <link rel="stylesheet" href="css/ol3-layerswitcher.css" type="text/css">
@@ -18,11 +18,47 @@
     </style>
 </head>
 <body>
-<div id="map" class="map"></div>
-<script src="js/jQuery-2.2.0.min.js"></script>
-<script src="ol3toolkit.js"></script>
-<script>
-    var OL3ToolkitOptions = {zoomLevel: 10, viewCenter:[120,30]};
-</script>
+    <div id="map" class="map"></div>
+    <script src="js/jQuery-2.2.0.min.js"></script>
+    <script src="ol3toolkit.js"></script>
+    <script>
+        var OL3ToolkitOptions = {
+            zoomLevel: 12,
+            viewCenter:[120.64,30.03],
+            customSources:{
+                RIVER: function () {
+                    return new ol.layer.Tile({
+                        title: '河道',
+                        source: new ol.source.TileWMS({
+                            ratio: 1,
+                            // extent: bounds,
+                            url: 'http://120.26.39.24/geoserver/sx/wms',
+                            params: {
+                                'VERSION': '1.1.1',
+                                STYLES: '',
+                                LAYERS: 'sx:river',
+                            }
+                        })
+                    });
+                },
+                RIDGE: function () {
+                    return new ol.layer.Tile({
+                        title: '河坎',
+                        source: new ol.source.TileWMS({
+                            ratio: 1,
+                            // extent: bounds,
+                            url: 'http://120.26.39.24/geoserver/sx/wms',
+                            params: {
+                                'VERSION': '1.1.1',
+                                STYLES: '',
+                                LAYERS: 'sx:ridge',
+                            }
+                        })
+                    });
+                }
+            }
+        };
+
+    </script>
 </body>
 </html>
