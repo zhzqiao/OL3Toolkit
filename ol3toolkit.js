@@ -150,7 +150,7 @@ $.OL3Toolkit.options = {
     //地图大小自适应
     mapSizeSelfAdaption: true,
     //影响地图高度的外包组件
-    mapWrapper: null,
+    mapWrapper: [],
     //多地图源切换
     enableSwitchMultiMapSources: true,
     //包含瓦片加载进度条
