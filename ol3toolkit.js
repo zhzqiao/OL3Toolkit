@@ -142,7 +142,7 @@ $.OL3Toolkit.options = {
 	minZoomLevel:9,
 	maxZoomLevel:16,
     //底图数据源
-    baseMapSources: ["SkymapRas",'Skymap','SATELLITE','QQ','BAIDU'],
+    baseMapSources: ["SkymapRas",'Skymap','OSM','SATELLITE','QQ','BAIDU'],
     //自定义数据源
     customSources: {},
     //自动把输入的'EPSG:4326'转换到'EPSG:3857/900913'
