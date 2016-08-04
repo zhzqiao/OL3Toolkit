@@ -1,3 +1,27 @@
+var OL3APP=OL3APP || {}
+OL3APP.namespace=function (ns_string){
+	var parts=ns_string.split('.'),
+	      parent=OL3APP,
+		  i;
+	
+	//剥离最前面的冗余全局变量
+	if (parts[0] === "OL3APP"){
+		parts=parts.slice(1);
+	}
+	
+	for (i = 0; i< parts.length; i++){
+		//如果不存在，就创建一个属性
+		if (typeof parent[parts[i]] === "undefined") {
+			parent[parts[i]]= {};
+		}
+		parent = parent[parts[i]];
+	}
+	return parent;
+}
+
+OL3APP.namespace('map');
+OL3APP.namespace('view');
+
 //地图定位控件，还存在问题
 ol.control.CustomZoomTo = function(opt_options){
     var options = opt_options || {};
@@ -62,12 +86,12 @@ ol.control.CustomZoomTo.prototype.getLocation = function (map, viewCenter) {
         var coordinates = geolocation.getPosition();
         positionFeature.setGeometry(coordinates ?
             new ol.geom.Point(coordinates) : null);
-        map.getView().setCenter(ol.proj.transform(coordinates,"EPSG:4326","EPSG:3857"));
-        map.getView().setZoom($.OL3Toolkit.options.zoomLevel);
+        OL3APP.map.getView().setCenter(ol.proj.transform(coordinates,"EPSG:4326","EPSG:3857"));
+        OL3APP.map.getView().setZoom($.OL3Toolkit.options.zoomLevel);
     });
 
     new ol.layer.Vector({
-        map: map,
+        map: OL3APP.map,
         source: new ol.source.Vector({
             features: [accuracyFeature, positionFeature]
         })
@@ -115,14 +139,18 @@ $.OL3Toolkit.options = {
     viewCenter: [120.63,30.05],
     //初始地图缩放等级
     zoomLevel: 7,
+	minZoomLevel:9,
+	maxZoomLevel:16,
     //底图数据源
-    baseMapSources: ["OSM",'SATELLITE','QQ','BAIDU'],
+    baseMapSources: ["SkymapRas",'Skymap','SATELLITE','QQ','BAIDU'],
     //自定义数据源
     customSources: {},
     //自动把输入的'EPSG:4326'转换到'EPSG:3857/900913'
     autoLatLngTransform: true,
     //地图大小自适应
     mapSizeSelfAdaption: true,
+    //影响地图高度的外包组件
+    mapWrapper: null,
     //多地图源切换
     enableSwitchMultiMapSources: true,
     //包含瓦片加载进度条
@@ -138,6 +166,11 @@ $.OL3Toolkit.options = {
     enalblePosition: false,
     //回到初始视角
     backOriginView: true,
+    //绑定透明度调整
+    //参数为图层组的title名
+    //input控件的id必须和内含图层的title对应
+    bindOpacityTarget: null,
+    
     //测量功能
     basicMeasure: true,
     //地图上弹出窗
@@ -167,6 +200,10 @@ $(function() {
     
     //如果有其他参数定义，则扩展参数
     if (typeof OL3ToolkitOptions !== "undefined") {
+        //设置底图显示，默认全显示
+		if(OL3ToolkitOptions.baseMapSources !== "undefined"){
+			$.OL3Toolkit.options.baseMapSources = OL3ToolkitOptions.baseMapSources;
+		}
         $.extend(true,
             $.OL3Toolkit.options,
             OL3ToolkitOptions);
@@ -188,40 +225,34 @@ $(function() {
         $.OL3Toolkit.createMap.activate();
     }
     //如果包含百度地图则需动态调整
-    map.getLayers().getArray()[0].getLayers().getArray().forEach(function(layer){
+    OL3APP.map.getLayers().getArray()[0].getLayers().getArray().forEach(function(layer){
         if(layer.get("title")=="百度地图"){
-            ol3view.on('change:center',function(event){
+            OL3APP.view.on('change:center',function(event){
                 layer.getSource().tileGrid = $.OL3Toolkit.Translate.BDtilegrid();
             })
         }
         if(layer.get("title")=="腾讯地图"){
-            ol3view.on('change:center',function(event){
+            OL3APP.view.on('change:center',function(event){
                 layer.getSource().tileGrid = $.OL3Toolkit.Translate.QQtilegrid();
             })
         }
     })
-/*    if(true){
-        ol3view.on('change:center',function(event){
-            map.getLayer().getSource().tileGrid = $.OL3Toolkit.mapSources.BAIDU.tilegrid();
-            // baiduSource.tileGrid = tilegrid();
-        })
-    }*/
 
     //由于采用的模板是almasaeed2010/AdminLTE
     //https://github.com/almasaeed2010/AdminLTE
     //所以需要自适应的内容填写'.content-wrapper'
     if(o.mapSizeSelfAdaption){
-        $.OL3Toolkit.sizeSelfAdaption.activate('.content-wrapper');
+        $.OL3Toolkit.sizeSelfAdaption.activate(o.mapWrapper);
     }
 
     //根据参数判断是否是否允许切换地图功能
     if(o.enableSwitchMultiMapSources){
-        map.addControl(new ol.control.LayerSwitcher());
+        OL3APP.map.addControl(new ol.control.LayerSwitcher());
     }
 
     //根据参数判断是否添加鸟瞰功能
     if(o.showBirdsEye){
-        map.addControl(new ol.control.OverviewMap({
+        OL3APP.map.addControl(new ol.control.OverviewMap({
             tipLabel: '鸟瞰图'
         }));
         //设置样式
@@ -230,14 +261,18 @@ $(function() {
     
     //根据参数判断是否添加比例尺
     if(o.showScaleLine){
-        map.addControl(new ol.control.ScaleLine());
+        OL3APP.map.addControl(new ol.control.ScaleLine());
     }
 
     //根据参数判断是否添加定位功能
     //to-do：改为根据当前位置
     if(o.enalblePosition||o.backOriginView){
         ol.inherits(ol.control.CustomZoomTo, ol.control.Control);
-        map.addControl(new ol.control.CustomZoomTo());
+        OL3APP.map.addControl(new ol.control.CustomZoomTo());
+    }
+    
+    if(o.bindOpacityTarget != null){
+    	$.OL3Toolkit.controlOpacity.activate(o.bindOpacityTarget)
     }
 
 })
@@ -265,6 +300,16 @@ function isStr(T) {
  * @private
  */
 function ol3ToolkitInit_() {
+	/**
+	 * ----------------------
+	 * - 基础工具部分 -
+	 * ----------------------
+	 * 提供以下常用基础工具
+	 *  1 坐标转换
+	 *  2 常用地图源
+	 *  3 选取指定title的layer
+	 */
+	
     //坐标转换工具
     $.OL3Toolkit.Translate = {
         BDtilegrid: function(){
@@ -278,8 +323,7 @@ function ol3ToolkitInit_() {
             }
             return new ol.tilegrid.TileGrid({
                 origin: (function() {
-                    //ol3view全局变量，这儿有点问题
-                    var epsg3857Center = ol3view.getCenter();
+                    var epsg3857Center = OL3APP.view.getCenter();
                     var epsg4326Center = ol.proj.transform(epsg3857Center,'EPSG:3857','EPSG:4326');
                     var baiduCoord = Convertor.ll_Mercator.convertLL2MC(epsg4326Center);
                     var baiduCoord2 = ol.proj.transform(Convertor.latlng.mars_baidu(Convertor.latlng.nor_mars(epsg4326Center)),'EPSG:4326','EPSG:3857');
@@ -304,9 +348,8 @@ function ol3ToolkitInit_() {
             }
             return new ol.tilegrid.TileGrid({
                 origin: (function() {
-                    //ol3view全局变量，这儿有点问题
                     var qqOrigin = ol.extent.getBottomLeft(projectionExtent);
-                    var epsg3857Center = ol3view.getCenter();
+                    var epsg3857Center = OL3APP.view.getCenter();
                     var epsg4326Center = ol.proj.transform(epsg3857Center,'EPSG:3857','EPSG:4326');
                     var qqCoord = ol.proj.transform(Convertor.latlng.nor_mars(epsg4326Center),'EPSG:4326','EPSG:3857');
                     return [qqOrigin[0]+epsg3857Center[0]-qqCoord[0],qqOrigin[1]+epsg3857Center[1]-qqCoord[1]]
@@ -394,7 +437,7 @@ function ol3ToolkitInit_() {
             for (var cN = 0; cN < this.MCBAND.length; cN++) {
                 if (cM.lat >= this.MCBAND[cN]) {
                     cO = this.MC2LL[cN];
-                    break
+                    break;
                 }
             }
             var T = this.convertor(cL, cO);
@@ -410,14 +453,14 @@ function ol3ToolkitInit_() {
             for (var cM = 0; cM < this.LLBAND.length; cM++) {
                 if (cL.lat >= this.LLBAND[cM]) {
                     cN = this.LL2MC[cM];
-                    break
+                    break;
                 }
             }
             if (!cN) {
                 for (var cM = this.LLBAND.length - 1; cM >= 0; cM--) {
                     if (cL.lat <= -this.LLBAND[cM]) {
                         cN = this.LL2MC[cM];
-                        break
+                        break;
                     }
                 }
             }
@@ -452,26 +495,41 @@ function ol3ToolkitInit_() {
             while (cM < cL) {
                 cM += T - cL
             }
-            return cM
+            return cM;
         }
     }
 
 
     $.OL3Toolkit.mapSources = {
-        SATELLITE: function () {
+        SkymapRas: function () {
             return new ol.layer.Tile({
-                title: '高分卫星',
+                title: '天地图卫星',
+                type: 'base',
+                visible: true,
+                source: new ol.source.XYZ({
+					attributions: [
+						new ol.Attribution({
+								html: 'Tiles &Copy; <a href="http://http://map.tianditu.com/">' +
+									'天地图</a>'
+							})
+						],
+					url: "http://t3.tianditu.com/DataServer?T=img_w&x={x}&y={y}&l={z}"
+                })
+            });
+        },
+		Skymap: function () {
+            return new ol.layer.Tile({
+                title: '天地图矢量',
                 type: 'base',
                 visible: false,
-                source: new ol.source.TileWMS({
-                    ratio: 1,
-                    // extent: bounds,
-                    url: 'http://120.26.39.24/geoserver/sx/wms',
-                    params: {
-                        'VERSION': '1.1.1',
-                        STYLES: '',
-                        LAYERS: 'sx:sx_city_GF',
-                    }
+                source: new ol.source.XYZ({
+					attributions: [
+						new ol.Attribution({
+								html: 'Tiles &Copy; <a href="http://http://map.tianditu.com/">' +
+									'天地图</a>'
+							})
+						],
+					url: "http://t6.tianditu.com/DataServer?T=vec_w&x={x}&y={y}&l={z}"
                 })
             });
         },
@@ -555,7 +613,40 @@ function ol3ToolkitInit_() {
                 visible: true,
                 source: baiduSource
             });
-        }
+        },
+        SATELLITE: function () {
+            return new ol.layer.Tile({
+                title: '高分卫星',
+                type: 'base',
+                visible: false,
+                source: new ol.source.TileWMS({
+                    ratio: 1,
+                    // extent: bounds,
+                    url: 'http://120.26.39.24/geoserver/sx/wms',
+                    params: {
+                        'VERSION': '1.1.1',
+                        STYLES: '',
+                        LAYERS: 'sx:sx_city_GF',
+                    }
+                })
+            });
+        },
+        TIAN: function () {
+            return new ol.layer.Tile({
+                title: '天地图',
+                type: 'base',
+                visible: false,
+                source: new ol.source.XYZ({
+					attributions: [
+						new ol.Attribution({
+								html: 'Tiles &Copy; <a href="http://http://map.tianditu.com/">' +
+									'天地图</a>'
+							})
+						],
+					url: "http://t6.tianditu.com/DataServer?T=vec_w&x={x}&y={y}&l={z}"
+                })
+            });
+        },
     };
 
     /**
@@ -574,12 +665,14 @@ function ol3ToolkitInit_() {
             if($.OL3Toolkit.options.autoLatLngTransform && o.viewCenter[0] <= 180 && o.viewCenter[0] >= -180 && o.viewCenter[1] <= 90 && o.viewCenter[1] >= -90){
                 o.viewCenter = ol.proj.transform(o.viewCenter, 'EPSG:4326', 'EPSG:3857')
             }
-            ol3view = new ol.View({
+            OL3APP.view = new ol.View({
                 center:o.viewCenter,
-                zoom: o.zoomLevel
+                zoom: o.zoomLevel,
+				minZoom:o.minZoomLevel,
+				maxZoom:o.maxZoomLevel
             });
-            map = new ol.Map({
-                view: ol3view,
+            OL3APP.map = new ol.Map({
+                view: OL3APP.view,
                 layers: this_.createLayers(o.baseMapSources),
                 target: o.targetID
             });
@@ -624,24 +717,21 @@ function ol3ToolkitInit_() {
 
 
     $.OL3Toolkit.sizeSelfAdaption = {
-        activate: function (outerClass) {
-            var outerElem;
-            //当没有传入外部类参数，或所传入的外部类不存在时，自动寻找外部类
-            if(outerClass==undefined||$(outerClass).length==0){
-                outerElem = $('#map').parent();
-            }else{
-                outerElem = $(outerClass);
-            }
+        activate: function (mapWrapper) {
             //初始时调整
             var this_ = this;
-            this_.fix(outerElem);
+            this_.fix(mapWrapper);
             //改变窗口大小时再次调整
-            outerElem.resize(function () {
-                this_.fix(outerElem);
+            $('#map').resize(function () {
+                this_.fix(mapWrapper);
             });
         },
-        fix: function (outerElem) {
-            map.setSize([outerElem.width(),$(window).height() - $('.main-footer').outerHeight() - $('.main-header').outerHeight() - 5])
+        fix: function (mapWrapper) {
+        	var wrapheights=0;
+        	for(var i=0;i<mapWrapper.length;i++){
+        		wrapheights+=$(mapWrapper[i]).outerHeight();
+        	}
+            OL3APP.map.setSize([$('#map').width(),$(window).height() - wrapheights - 7])
         }
     };
 
@@ -737,17 +827,63 @@ function ol3ToolkitInit_() {
                 var coordinates = geolocation.getPosition();
                 positionFeature.setGeometry(coordinates ?
                     new ol.geom.Point(coordinates) : null);
-                map.getView().centerOn(ol.proj.transform(coordinates, "EPSG:4326", "EPSG:3857"), map.getSize(), [570, 500]);
+                OL3APP.map.getView().centerOn(ol.proj.transform(coordinates, "EPSG:4326", "EPSG:3857"), map.getSize(), [570, 500]);
             });
 
             new ol.layer.Vector({
-                map: map,
+                map: OL3APP.map,
                 source: new ol.source.Vector({
                     features: [accuracyFeature, positionFeature]
                 })
             });
         }
     }
+    
+    //绑定透明度
+    $.OL3Toolkit.controlOpacity = {
+		activate: function(targetLayerGroup) {
+			var this_ = this;
+			this_.findTargetLayerGroup(targetLayerGroup);			
+		},
+    	findTargetLayerGroup: function(targetName){
+    		var this_ = this;
+    		OL3APP.map.getLayers().forEach(function(layerGroup, j) {
+				if (layerGroup.values_.title == targetName) {
+					layerGroup.getLayers().forEach(function(layerTile, j) {
+						this_.bindOpacity('#' + layerTile.values_.title, layerTile);
+					})
+				}
+			})
+    	},
+    	bindOpacity: function(targetID, layer) {
+    		var opacityInput = $(targetID);
+            opacityInput.on('input change', function() {
+              layer.setOpacity(parseFloat(this.value));
+            });
+            opacityInput.val(String(layer.getOpacity()));
+		}
+    }
+	
+	//组装GeoJSON features，以便调用readFeatures，最终显示图层
+	//geomModels 1.包含属性为geomAtbName，值为ST_AsGeoJSON查询格式的对象list
+    //           2.ST_AsGeoJSON查询格式的对象list(geomAtbName=null
+	$.OL3Toolkit.makefeatures= {
+		makeGeoJSONfeatures: function (geomModels,geomAtbName) {
+												var features =[];
+												console.log("makeFeature");
+												for(var i=0;i<geomModels.length;i++){
+													//console.log(JSON.parse(geomModels[i].geom));
+													if(geomAtbName != null){
+														features.push($.extend({'type': 'Feature'},{'geometry':JSON.parse(geomModels[i][geomAtbName])}));
+													}
+													else{
+														features.push($.extend({'type': 'Feature'},{'geometry':JSON.parse(geomModels[i])}));
+													}
+												}
+												//console.log("makeFeatureCollection");
+												return $.extend({},{'type':'FeatureCollection'},{'crs': {'type':'name','properties':{'name':'EPSG:3857'}}},{'features':features});			
+											}
+	}
 
 }
 
