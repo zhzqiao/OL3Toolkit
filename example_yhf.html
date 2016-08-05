@@ -27,8 +27,6 @@
             zoomLevel : 10,
             viewCenter : [ 121.39, 28.85 ],
             baseMapSources: ['SkymapRas','Skymap'],
-            mapWrapper: [],
-            bindOpacityTarget : "叠加图层",
             customSources : {
                 ZJEdge: function () {
                     return new ol.layer.Tile({
@@ -40,7 +38,7 @@
                             params: {
                                 'VERSION': '1.1.1',
                                 STYLES: '',
-                                LAYERS: 'sir:zhejiang',
+                                LAYERS: 'sir:zhejiang'
                             }
                         })
                     });
@@ -55,7 +53,7 @@
                             params: {
                                 'VERSION': '1.1.1',
                                 STYLES: '',
-                                LAYERS: 'sir:taizhouline',
+                                LAYERS: 'sir:taizhouline'
                             }
                         })
                     });
@@ -70,7 +68,7 @@
                             params: {
                                 'VERSION': '1.1.1',
                                 STYLES: '',
-                                LAYERS: 'sir:lhbl',
+                                LAYERS: 'sir:lhbl'
                             }
                         })
                     });
@@ -91,6 +89,39 @@
             }
         };
 
+        //模拟服务器返回的包含有属性geom，其值为ST_AsGeoJSON查询结果的对象
+        var serverdata=[{'name':'a','geom':'{"type":"Point","coordinates":[13478045.0932808,3383110.67570617]}'}];
+
+        //定义矢量图层对象用于存放自添加图层
+        var vecLyr={tstptlyr:null};
+        //自添加图层显示样式
+        var styles = {
+            'tstptlyr':[new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 10,
+                    fill: new ol.style.Fill({color:'#FF6633'}),
+                    stroke: new ol.style.Stroke({color: 'white', width: 2})
+                })
+            })]
+        };
+
+        //显示GeoJSON格式矢量,图层名为vLyrName
+        //geomModels 一组对象list，其对象包含有属性geom，其值为ST_AsGeoJSON查询格式
+        function showGeoJSONlayer(geomModels,vLyrName){
+            vecLyr[vLyrName]= new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    features: (new ol.format.GeoJSON()).readFeatures($.OL3Toolkit.makefeatures.makeGeoJSONfeatures(geomModels,'geom'))
+                }),
+                style: styles[vLyrName]
+            });
+            //添加geojson矢量图层到map
+            OL3APP.map.addLayer(vecLyr[vLyrName]);
+        }
+
+        $(function() {
+            //获取需求点图层
+            showGeoJSONlayer(serverdata,'tstptlyr');
+        });
     </script>
 </body>
 </html>
