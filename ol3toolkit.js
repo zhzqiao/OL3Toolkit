@@ -1,5 +1,29 @@
+var OL3APP = OL3APP || {}
+OL3APP.namespace = function(ns_string) {
+    var parts = ns_string.split('.'),
+        parent = OL3APP,
+        i;
+
+    //剥离最前面的冗余全局变量
+    if (parts[0] === "OL3APP") {
+        parts = parts.slice(1);
+    }
+
+    for (i = 0; i < parts.length; i++) {
+        //如果不存在，就创建一个属性
+        if (typeof parent[parts[i]] === "undefined") {
+            parent[parts[i]] = {};
+        }
+        parent = parent[parts[i]];
+    }
+    return parent;
+}
+
+OL3APP.namespace('map');
+OL3APP.namespace('view');
+
 //地图定位控件，还存在问题
-ol.control.CustomZoomTo = function(opt_options){
+ol.control.CustomZoomTo = function(opt_options) {
     var options = opt_options || {};
 
     var button = document.createElement('button');
@@ -9,9 +33,9 @@ ol.control.CustomZoomTo = function(opt_options){
 
     button.onclick = function(e) {
         e = e || window.event;
-        if($.OL3Toolkit.options.enalblePosition){
+        if ($.OL3Toolkit.options.enalblePosition) {
             $.OL3Toolkit.getLocation.activate();
-        }else {
+        } else {
             this_.getMap().getView().setCenter($.OL3Toolkit.options.viewCenter);
             this_.getMap().getView().setZoom($.OL3Toolkit.options.zoomLevel);
         }
@@ -31,7 +55,7 @@ ol.control.CustomZoomTo = function(opt_options){
 
 
 
-ol.control.CustomZoomTo.prototype.getLocation = function (map, viewCenter) {
+ol.control.CustomZoomTo.prototype.getLocation = function(map, viewCenter) {
     var geolocation = new ol.Geolocation();
     geolocation.setTracking(true);
     geolocation.on('error', function(error) {
@@ -62,12 +86,12 @@ ol.control.CustomZoomTo.prototype.getLocation = function (map, viewCenter) {
         var coordinates = geolocation.getPosition();
         positionFeature.setGeometry(coordinates ?
             new ol.geom.Point(coordinates) : null);
-        map.getView().setCenter(ol.proj.transform(coordinates,"EPSG:4326","EPSG:3857"));
-        map.getView().setZoom($.OL3Toolkit.options.zoomLevel);
+        OL3APP.map.getView().setCenter(ol.proj.transform(coordinates, "EPSG:4326", "EPSG:3857"));
+        OL3APP.map.getView().setZoom($.OL3Toolkit.options.zoomLevel);
     });
 
     new ol.layer.Vector({
-        map: map,
+        map: OL3APP.map,
         source: new ol.source.Vector({
             features: [accuracyFeature, positionFeature]
         })
@@ -79,18 +103,18 @@ ol.control.CustomZoomTo.prototype.getLocation = function (map, viewCenter) {
 
 
 // 确保jQuery在ol3toolkit.js前加载
-if(typeof jQuery === "undefined"){
+if (typeof jQuery === "undefined") {
     throw new Error("使用ol3toolkit需要先加载jQuery");
 }
 
 // 确保OL3在ol3toolkit.js前加载
 // Openlayers编写时的版本为V3.15.1
-if(typeof ol === "undefined"){
+if (typeof ol === "undefined") {
     throw new Error("使用ol3toolkit需要先加载openlayers3");
 }
 
 // 确保第三方包LayerSwitcher在ol3toolkit.js前加载
-if(typeof ol.control.LayerSwitcher === "undefined"){
+if (typeof ol.control.LayerSwitcher === "undefined") {
     throw new Error("为了切换地图，请先加载LayerSwitcher");
 }
 
@@ -112,17 +136,21 @@ $.OL3Toolkit.options = {
     //绑定的<div>Id
     targetID: "map",
     //地图起始中心坐标
-    viewCenter: [120.63,30.05],
+    viewCenter: [120.63, 30.05],
     //初始地图缩放等级
     zoomLevel: 7,
+    minZoomLevel: 9,
+    maxZoomLevel: 16,
     //底图数据源
-    baseMapSources: ["OSM",'SATELLITE','QQ','BAIDU'],
+    baseMapSources: ["SkymapRas", 'Skymap', 'OSM', 'SATELLITE', 'QQ', 'BAIDU'],
     //自定义数据源
     customSources: {},
     //自动把输入的'EPSG:4326'转换到'EPSG:3857/900913'
     autoLatLngTransform: true,
     //地图大小自适应
     mapSizeSelfAdaption: true,
+    //影响地图高度的外包组件
+    mapWrapper: [],
     //多地图源切换
     enableSwitchMultiMapSources: true,
     //包含瓦片加载进度条
@@ -142,7 +170,7 @@ $.OL3Toolkit.options = {
     //参数为图层组的title名
     //input控件的id必须和内含图层的title对应
     bindOpacityTarget: null,
-    
+
     //测量功能
     basicMeasure: true,
     //地图上弹出窗
@@ -169,9 +197,13 @@ $.OL3Toolkit.options = {
 }
 
 $(function() {
-    
+
     //如果有其他参数定义，则扩展参数
     if (typeof OL3ToolkitOptions !== "undefined") {
+        //设置底图显示，默认全显示
+        if (OL3ToolkitOptions.baseMapSources !== "undefined") {
+            $.OL3Toolkit.options.baseMapSources = OL3ToolkitOptions.baseMapSources;
+        }
         $.extend(true,
             $.OL3Toolkit.options,
             OL3ToolkitOptions);
@@ -179,73 +211,76 @@ $(function() {
 
     //方便调用参数
     var o = $.OL3Toolkit.options;
-    
+
     //如果要包含进度条的话，在map下方添加一个#progress的div
-    if(o.hasProgress){
-        $("#"+o.targetID).after('<div id="progress"></div>');
+    if (o.hasProgress) {
+        $("#" + o.targetID).after('<div id="progress"></div>');
     }
 
     //初始化对象
     ol3ToolkitInit_();
 
     //快速生成地图
-    if(o.quickCreation){
+    if (o.quickCreation) {
         $.OL3Toolkit.createMap.activate();
     }
     //如果包含百度地图则需动态调整
-    map.getLayers().getArray()[0].getLayers().getArray().forEach(function(layer){
-        if(layer.get("title")=="百度地图"){
-            ol3view.on('change:center',function(event){
+    OL3APP.map.getLayers().getArray()[0].getLayers().getArray().forEach(function(layer) {
+        if (layer.get("title") == "百度地图") {
+            OL3APP.view.on('change:center', function(event) {
                 layer.getSource().tileGrid = $.OL3Toolkit.Translate.BDtilegrid();
             })
         }
-        if(layer.get("title")=="腾讯地图"){
-            ol3view.on('change:center',function(event){
+        if (layer.get("title") == "腾讯地图") {
+            OL3APP.view.on('change:center', function(event) {
                 layer.getSource().tileGrid = $.OL3Toolkit.Translate.QQtilegrid();
             })
         }
     })
-/*    if(true){
-        ol3view.on('change:center',function(event){
-            map.getLayer().getSource().tileGrid = $.OL3Toolkit.mapSources.BAIDU.tilegrid();
-            // baiduSource.tileGrid = tilegrid();
-        })
-    }*/
 
     //由于采用的模板是almasaeed2010/AdminLTE
     //https://github.com/almasaeed2010/AdminLTE
     //所以需要自适应的内容填写'.content-wrapper'
-    if(o.mapSizeSelfAdaption){
-        $.OL3Toolkit.sizeSelfAdaption.activate('.content-wrapper');
+    if (o.mapSizeSelfAdaption) {
+        $.OL3Toolkit.sizeSelfAdaption.activate(o.mapWrapper);
     }
 
     //根据参数判断是否是否允许切换地图功能
-    if(o.enableSwitchMultiMapSources){
-        map.addControl(new ol.control.LayerSwitcher());
+    if (o.enableSwitchMultiMapSources) {
+        OL3APP.map.addControl(new ol.control.LayerSwitcher());
     }
 
     //根据参数判断是否添加鸟瞰功能
-    if(o.showBirdsEye){
-        map.addControl(new ol.control.OverviewMap({
+    if (o.showBirdsEye) {
+        OL3APP.map.addControl(new ol.control.OverviewMap({
             tipLabel: '鸟瞰图'
         }));
         //设置样式
-        $('.ol-overviewmap').css({"right": ".5em","top": ".5em", "left": "inherit","bottom": "inherit"});
+        $('.ol-overviewmap').css({
+            "right": ".5em",
+            "top": ".5em",
+            "left": "inherit",
+            "bottom": "inherit"
+        });
     }
-    
+
     //根据参数判断是否添加比例尺
-    if(o.showScaleLine){
-        map.addControl(new ol.control.ScaleLine());
+    if (o.showScaleLine) {
+        OL3APP.map.addControl(new ol.control.ScaleLine());
     }
 
     //根据参数判断是否添加定位功能
     //to-do：改为根据当前位置
-    if(o.enalblePosition||o.backOriginView){
+    if (o.enalblePosition || o.backOriginView) {
         ol.inherits(ol.control.CustomZoomTo, ol.control.Control);
-        map.addControl(new ol.control.CustomZoomTo());
+        OL3APP.map.addControl(new ol.control.CustomZoomTo());
     }
-    
-    if(o.bindOpacityTarget != null){
+
+    if (o.bindOpacityTarget != null) {
+        $.OL3Toolkit.controlOpacity.activate(o.bindOpacityTarget)
+    }
+
+    if (o.bindOpacityTarget != null) {
         $.OL3Toolkit.controlOpacity.activate(o.bindOpacityTarget)
     }
 
@@ -274,30 +309,39 @@ function isStr(T) {
  * @private
  */
 function ol3ToolkitInit_() {
+    /**
+     * ----------------------
+     * - 基础工具部分 -
+     * ----------------------
+     * 提供以下常用基础工具
+     *  1 坐标转换
+     *  2 常用地图源
+     *  3 选取指定title的layer
+     */
+
     //坐标转换工具
     $.OL3Toolkit.Translate = {
-        BDtilegrid: function(){
+        BDtilegrid: function() {
             var Convertor = $.OL3Toolkit.Translate;
             // 自定义分辨率和瓦片坐标系
             var resolutions = [];
             var maxZoom = 18;
             // 计算百度使用的分辨率
-            for(var i=0; i<=maxZoom; i++){
-                resolutions[i] = Math.pow(2, maxZoom-i);
+            for (var i = 0; i <= maxZoom; i++) {
+                resolutions[i] = Math.pow(2, maxZoom - i);
             }
             return new ol.tilegrid.TileGrid({
                 origin: (function() {
-                    //ol3view全局变量，这儿有点问题
-                    var epsg3857Center = ol3view.getCenter();
-                    var epsg4326Center = ol.proj.transform(epsg3857Center,'EPSG:3857','EPSG:4326');
+                    var epsg3857Center = OL3APP.view.getCenter();
+                    var epsg4326Center = ol.proj.transform(epsg3857Center, 'EPSG:3857', 'EPSG:4326');
                     var baiduCoord = Convertor.ll_Mercator.convertLL2MC(epsg4326Center);
-                    var baiduCoord2 = ol.proj.transform(Convertor.latlng.mars_baidu(Convertor.latlng.nor_mars(epsg4326Center)),'EPSG:4326','EPSG:3857');
-                    return [2*epsg3857Center[0]-baiduCoord[0]-baiduCoord2[0],2*epsg3857Center[1]-baiduCoord[1]-baiduCoord2[1]]
-                })(),    // 设置原点坐标
-                resolutions: resolutions  // 设置分辨率
+                    var baiduCoord2 = ol.proj.transform(Convertor.latlng.mars_baidu(Convertor.latlng.nor_mars(epsg4326Center)), 'EPSG:4326', 'EPSG:3857');
+                    return [2 * epsg3857Center[0] - baiduCoord[0] - baiduCoord2[0], 2 * epsg3857Center[1] - baiduCoord[1] - baiduCoord2[1]]
+                })(), // 设置原点坐标
+                resolutions: resolutions // 设置分辨率
             })
         },
-        QQtilegrid: function(){
+        QQtilegrid: function() {
             var Convertor = $.OL3Toolkit.Translate;
             // 自定义分辨率和瓦片坐标系
             var resolutions = [];
@@ -313,23 +357,22 @@ function ol3ToolkitInit_() {
             }
             return new ol.tilegrid.TileGrid({
                 origin: (function() {
-                    //ol3view全局变量，这儿有点问题
                     var qqOrigin = ol.extent.getBottomLeft(projectionExtent);
-                    var epsg3857Center = ol3view.getCenter();
-                    var epsg4326Center = ol.proj.transform(epsg3857Center,'EPSG:3857','EPSG:4326');
-                    var qqCoord = ol.proj.transform(Convertor.latlng.nor_mars(epsg4326Center),'EPSG:4326','EPSG:3857');
-                    return [qqOrigin[0]+epsg3857Center[0]-qqCoord[0],qqOrigin[1]+epsg3857Center[1]-qqCoord[1]]
-                })(),    // 设置原点坐标
-                resolutions: resolutions  // 设置分辨率
+                    var epsg3857Center = OL3APP.view.getCenter();
+                    var epsg4326Center = ol.proj.transform(epsg3857Center, 'EPSG:3857', 'EPSG:4326');
+                    var qqCoord = ol.proj.transform(Convertor.latlng.nor_mars(epsg4326Center), 'EPSG:4326', 'EPSG:3857');
+                    return [qqOrigin[0] + epsg3857Center[0] - qqCoord[0], qqOrigin[1] + epsg3857Center[1] - qqCoord[1]]
+                })(), // 设置原点坐标
+                resolutions: resolutions // 设置分辨率
             })
         }
     };
     $.OL3Toolkit.Translate.latlng = {
-        pi : 3.14159265358979324,
-        x_pi : 52.35987755982988, //pi * 3000.0 / 180.0,
-        a : 6378245.0,
-        ee : 0.00669342162296594323,
-        nor_mars: function (arg) {
+        pi: 3.14159265358979324,
+        x_pi: 52.35987755982988, //pi * 3000.0 / 180.0,
+        a: 6378245.0,
+        ee: 0.00669342162296594323,
+        nor_mars: function(arg) {
             var wgLon = arg[0];
             var wgLat = arg[1];
             var radLat = wgLat / 180.0 * this.pi;
@@ -342,38 +385,40 @@ function ol3ToolkitInit_() {
             dLat = (dLat * 180.0) / ((this.a * (1 - this.ee)) / (magic * sqrtMagic) * this.pi);
             mLon = wgLon + dLon;
             mLat = wgLat + dLat;
-            return [mLon,mLat];
+            return [mLon, mLat];
         },
-        mars_baidu: function (arg) {
-            var x = arg[0], y = arg[1];
+        mars_baidu: function(arg) {
+            var x = arg[0],
+                y = arg[1];
             var z = Math.sqrt(x * x + y * y) + 0.00002 * Math.sin(y * this.x_pi);
             var theta = Math.atan2(y, x) + 0.000003 * Math.cos(x * this.x_pi);
             bdLon = z * Math.cos(theta) + 0.0065;
             bdLat = z * Math.sin(theta) + 0.006;
-            return [bdLon,bdLat];
+            return [bdLon, bdLat];
         },
-        baidu_mars: function (arg) {
-            var x = arg[0] - 0.0065, y = arg[1] - 0.006;
+        baidu_mars: function(arg) {
+            var x = arg[0] - 0.0065,
+                y = arg[1] - 0.006;
             var z = Math.sqrt(x * x + y * y) - 0.00002 * Math.sin(y * this.x_pi);
             var theta = Math.atan2(y, x) - 0.000003 * Math.cos(x * this.x_pi);
             mgLon = z * Math.cos(theta);
             mgLat = z * Math.sin(theta);
-            return [mgLon,mgLat];
+            return [mgLon, mgLat];
         },
-        transformLat: function (x, y) {
+        transformLat: function(x, y) {
             var ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
             ret += (20.0 * Math.sin(6.0 * x * this.pi) + 20.0 * Math.sin(2.0 * x * this.pi)) * 2.0 / 3.0;
             ret += (20.0 * Math.sin(y * this.pi) + 40.0 * Math.sin(y / 3.0 * this.pi)) * 2.0 / 3.0;
             ret += (160.0 * Math.sin(y / 12.0 * this.pi) + 320 * Math.sin(y * this.pi / 30.0)) * 2.0 / 3.0;
             return ret;
         },
-        transformLon: function (x, y){
-        var ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
-        ret += (20.0 * Math.sin(6.0 * x * this.pi) + 20.0 * Math.sin(2.0 * x * this.pi)) * 2.0 / 3.0;
-        ret += (20.0 * Math.sin(x * this.pi) + 40.0 * Math.sin(x / 3.0 * this.pi)) * 2.0 / 3.0;
-        ret += (150.0 * Math.sin(x / 12.0 * this.pi) + 300.0 * Math.sin(x / 30.0 * this.pi)) * 2.0 / 3.0;
-        return ret;
-    }
+        transformLon: function(x, y) {
+            var ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+            ret += (20.0 * Math.sin(6.0 * x * this.pi) + 20.0 * Math.sin(2.0 * x * this.pi)) * 2.0 / 3.0;
+            ret += (20.0 * Math.sin(x * this.pi) + 40.0 * Math.sin(x / 3.0 * this.pi)) * 2.0 / 3.0;
+            ret += (150.0 * Math.sin(x / 12.0 * this.pi) + 300.0 * Math.sin(x / 30.0 * this.pi)) * 2.0 / 3.0;
+            return ret;
+        }
     };
 
     $.OL3Toolkit.Translate.ll_Mercator = {
@@ -397,7 +442,7 @@ function ol3ToolkitInit_() {
             [-0.0003218135878613132, 111320.7020701615, 0.00369383431289, 823725.6402795718, 0.46104986909093, 2351.343141331292, 1.58060784298199, 8.77738589078284, 0.37238884252424, 7.45]
         ],
         convertMC2LL: function(cL) {
-            var cL = new point(cL[0],cL[1]);
+            var cL = new point(cL[0], cL[1]);
             var cM, cO;
             cM = new point(Math.abs(cL.lng), Math.abs(cL.lat));
             for (var cN = 0; cN < this.MCBAND.length; cN++) {
@@ -411,7 +456,7 @@ function ol3ToolkitInit_() {
             return cL
         },
         convertLL2MC: function(T) {
-            var T = new point(T[0],T[1]);
+            var T = new point(T[0], T[1]);
             var cL, cN;
             T.lng = this.getLoop(T.lng, -180, 180);
             T.lat = this.getRange(T.lat, -74, 74);
@@ -467,24 +512,39 @@ function ol3ToolkitInit_() {
 
 
     $.OL3Toolkit.mapSources = {
-        SATELLITE: function () {
+        SkymapRas: function() {
             return new ol.layer.Tile({
-                title: '高分卫星',
+                title: '天地图卫星',
                 type: 'base',
-                visible: false,
-                source: new ol.source.TileWMS({
-                    ratio: 1,
-                    // extent: bounds,
-                    url: 'http://120.26.39.24/geoserver/sx/wms',
-                    params: {
-                        'VERSION': '1.1.1',
-                        STYLES: '',
-                        LAYERS: 'sx:sx_city_GF',
-                    }
+                visible: true,
+                source: new ol.source.XYZ({
+                    attributions: [
+                        new ol.Attribution({
+                            html: 'Tiles &Copy; <a href="http://http://map.tianditu.com/">' +
+                                '天地图</a>'
+                        })
+                    ],
+                    url: "http://t3.tianditu.com/DataServer?T=img_w&x={x}&y={y}&l={z}"
                 })
             });
         },
-        OSM: function () {
+        Skymap: function() {
+            return new ol.layer.Tile({
+                title: '天地图矢量',
+                type: 'base',
+                visible: false,
+                source: new ol.source.XYZ({
+                    attributions: [
+                        new ol.Attribution({
+                            html: 'Tiles &Copy; <a href="http://http://map.tianditu.com/">' +
+                                '天地图</a>'
+                        })
+                    ],
+                    url: "http://t6.tianditu.com/DataServer?T=vec_w&x={x}&y={y}&l={z}"
+                })
+            });
+        },
+        OSM: function() {
             return new ol.layer.Tile({
                 title: 'OSM',
                 type: 'base',
@@ -492,7 +552,7 @@ function ol3ToolkitInit_() {
                 source: new ol.source.OSM()
             });
         },
-        QQ: function () {
+        QQ: function() {
             var attribution = new ol.Attribution({
                 html: 'Copyright:&copy; 2015 腾讯地图'
             });
@@ -502,7 +562,7 @@ function ol3ToolkitInit_() {
                 attributions: [attribution],
                 // projection: ol.proj.get('EPSG:3857'),
                 tileGrid: $.OL3Toolkit.Translate.QQtilegrid(),
-                tileUrlFunction: function (xyz, pixelRatio, projection) {
+                tileUrlFunction: function(xyz, pixelRatio, projection) {
                     if (!xyz) {
                         return "";
                     }
@@ -531,8 +591,8 @@ function ol3ToolkitInit_() {
                 source: tilesource
             });
         },
-        BAIDU: function(){
-            
+        BAIDU: function() {
+
             var attribution = new ol.Attribution({
                 html: 'Copyright:&copy; 2015 百度地图'
             });
@@ -541,19 +601,19 @@ function ol3ToolkitInit_() {
                 attributions: [attribution],
                 projection: 'EPSG:3857',
                 tileGrid: $.OL3Toolkit.Translate.BDtilegrid(),
-                tileUrlFunction: function(tileCoord, pixelRatio, proj){
+                tileUrlFunction: function(tileCoord, pixelRatio, proj) {
                     var z = tileCoord[0];
                     var x = tileCoord[1];
                     var y = tileCoord[2];
                     // 百度瓦片服务url将负数使用M前缀来标识
-                    if(x<0){
+                    if (x < 0) {
                         x = 'M' + (-x);
                     }
-                    if(y<0){
+                    if (y < 0) {
                         y = 'M' + (-y);
                     }
 
-                    return "http://online0.map.bdimg.com/onlinelabel/?qt=tile&x="+x+"&y="+y+"&z="+z+"&styles=pl&udt=20160426&scaler=1&p=0";
+                    return "http://online0.map.bdimg.com/onlinelabel/?qt=tile&x=" + x + "&y=" + y + "&z=" + z + "&styles=pl&udt=20160426&scaler=1&p=0";
                 }
             });
 
@@ -564,39 +624,74 @@ function ol3ToolkitInit_() {
                 visible: true,
                 source: baiduSource
             });
-        }
+        },
+        SATELLITE: function() {
+            return new ol.layer.Tile({
+                title: '高分卫星',
+                type: 'base',
+                visible: false,
+                source: new ol.source.TileWMS({
+                    ratio: 1,
+                    // extent: bounds,
+                    url: 'http://120.26.39.24/geoserver/sx/wms',
+                    params: {
+                        'VERSION': '1.1.1',
+                        STYLES: '',
+                        LAYERS: 'sx:sx_city_GF',
+                    }
+                })
+            });
+        },
+        TIAN: function() {
+            return new ol.layer.Tile({
+                title: '天地图',
+                type: 'base',
+                visible: false,
+                source: new ol.source.XYZ({
+                    attributions: [
+                        new ol.Attribution({
+                            html: 'Tiles &Copy; <a href="http://http://map.tianditu.com/">' +
+                                '天地图</a>'
+                        })
+                    ],
+                    url: "http://t6.tianditu.com/DataServer?T=vec_w&x={x}&y={y}&l={z}"
+                })
+            });
+        },
     };
 
     /**
      * 创建简单地图
      * ==========
      * 只需输入绑定ID
-     * 
+     *
      * @type {{activate: $.OL3Toolkit.createMap.activate}}
      */
     $.OL3Toolkit.createMap = {
-        activate: function(){
+        activate: function() {
             var this_ = this;
             //方便调用参数
             var o = $.OL3Toolkit.options;
             //如果开启自动转换经纬度，且参数正确，则把经纬度转换成标准坐标参考系
-            if($.OL3Toolkit.options.autoLatLngTransform && o.viewCenter[0] <= 180 && o.viewCenter[0] >= -180 && o.viewCenter[1] <= 90 && o.viewCenter[1] >= -90){
+            if ($.OL3Toolkit.options.autoLatLngTransform && o.viewCenter[0] <= 180 && o.viewCenter[0] >= -180 && o.viewCenter[1] <= 90 && o.viewCenter[1] >= -90) {
                 o.viewCenter = ol.proj.transform(o.viewCenter, 'EPSG:4326', 'EPSG:3857')
             }
-            ol3view = new ol.View({
-                center:o.viewCenter,
-                zoom: o.zoomLevel
+            OL3APP.view = new ol.View({
+                center: o.viewCenter,
+                zoom: o.zoomLevel,
+                minZoom: o.minZoomLevel,
+                maxZoom: o.maxZoomLevel
             });
-            map = new ol.Map({
-                view: ol3view,
+            OL3APP.map = new ol.Map({
+                view: OL3APP.view,
                 layers: this_.createLayers(o.baseMapSources),
                 target: o.targetID
             });
         },
         // 组装成最终的图层
-        createLayers: function(baseSource){
+        createLayers: function(baseSource) {
             var this_ = this;
-            
+
             var baseMaps = new ol.layer.Group({
                 'title': '底图数据',
                 layers: this_.traverseMapSources($.OL3Toolkit.mapSources, baseSource)
@@ -605,27 +700,27 @@ function ol3ToolkitInit_() {
                 title: '叠加图层',
                 layers: this_.traverseMapSources($.OL3Toolkit.options.customSources)
             });
-            return [baseMaps,overlays];
+            return [baseMaps, overlays];
         },
         // 遍历参数，组装成底图图层
-        traverseMapSources: function (exitMapSources, neededMapSources) {
+        traverseMapSources: function(exitMapSources, neededMapSources) {
             var finalBaselayers = [];
             //如果exitMapSources中有需要的底图，则组装成底图图层组
-            for(var item in exitMapSources){
-                if(neededMapSources==undefined){
+            for (var item in exitMapSources) {
+                if (neededMapSources == undefined) {
                     finalBaselayers.push(exitMapSources[item]());
-                }else{
-                    for(var i=0;i<neededMapSources.length;i++){
-                        if(neededMapSources[i]==item){
+                } else {
+                    for (var i = 0; i < neededMapSources.length; i++) {
+                        if (neededMapSources[i] == item) {
                             var source = exitMapSources[item]();
                             //添加进度条
-                            if($.OL3Toolkit.options.hasProgress){
+                            if ($.OL3Toolkit.options.hasProgress) {
                                 $.OL3Toolkit.progress.activate(source);
-                            }                    
+                            }
                             finalBaselayers.push(source);
                         }
                     }
-                }                
+                }
             }
             return finalBaselayers;
         }
@@ -633,24 +728,21 @@ function ol3ToolkitInit_() {
 
 
     $.OL3Toolkit.sizeSelfAdaption = {
-        activate: function (outerClass) {
-            var outerElem;
-            //当没有传入外部类参数，或所传入的外部类不存在时，自动寻找外部类
-            if(outerClass==undefined||$(outerClass).length==0){
-                outerElem = $('#map').parent();
-            }else{
-                outerElem = $(outerClass);
-            }
+        activate: function(mapWrapper) {
             //初始时调整
             var this_ = this;
-            this_.fix(outerElem);
+            this_.fix(mapWrapper);
             //改变窗口大小时再次调整
-            outerElem.resize(function () {
-                this_.fix(outerElem);
+            $('#map').resize(function() {
+                this_.fix(mapWrapper);
             });
         },
-        fix: function (outerElem) {
-            map.setSize([outerElem.width(),$(window).height() - $('.main-footer').outerHeight() - $('.main-header').outerHeight() - 5])
+        fix: function(mapWrapper) {
+            var wrapheights = 0;
+            for (var i = 0; i < mapWrapper.length; i++) {
+                wrapheights += $(mapWrapper[i]).outerHeight();
+            }
+            OL3APP.map.setSize([$('#map').width(), $(window).height() - wrapheights - 7])
         }
     };
 
@@ -676,7 +768,7 @@ function ol3ToolkitInit_() {
         //统计要开始下载的数量
         addLoading: function() {
             if (this.loading === 0) {
-              this.show();
+                this.show();
             }
             ++this.loading;
             this.update();
@@ -685,8 +777,8 @@ function ol3ToolkitInit_() {
         addLoaded: function() {
             var this_ = this;
             setTimeout(function() {
-              ++this_.loaded;
-              this_.update();
+                ++this_.loaded;
+                this_.update();
             }, 100);
         },
         //更新进度条的长度
@@ -694,9 +786,9 @@ function ol3ToolkitInit_() {
             var width = (this.loaded / this.loading * 100).toFixed(1) + '%';
             this.el.style.width = width;
             if (this.loading === this.loaded) {
-              this.loading = 0;
-              this.loaded = 0;
-              /*var this_ = this;
+                this.loading = 0;
+                this.loaded = 0;
+                /*var this_ = this;
               setTimeout(function() {
                 this_.hide();
               }, 500);*/
@@ -709,14 +801,14 @@ function ol3ToolkitInit_() {
         // 隐藏进度条
         hide: function() {
             if (this.loading === this.loaded) {
-              this.el.style.visibility = 'hidden';
+                this.el.style.visibility = 'hidden';
             }
         }
     };
 
     //还存在问题
     $.OL3Toolkit.getLocation = {
-        activate: function () {
+        activate: function() {
             var geolocation = new ol.Geolocation();
             geolocation.setTracking(true);
             geolocation.on('error', function(error) {
@@ -746,25 +838,25 @@ function ol3ToolkitInit_() {
                 var coordinates = geolocation.getPosition();
                 positionFeature.setGeometry(coordinates ?
                     new ol.geom.Point(coordinates) : null);
-                map.getView().centerOn(ol.proj.transform(coordinates, "EPSG:4326", "EPSG:3857"), map.getSize(), [570, 500]);
+                OL3APP.map.getView().centerOn(ol.proj.transform(coordinates, "EPSG:4326", "EPSG:3857"), map.getSize(), [570, 500]);
             });
 
             new ol.layer.Vector({
-                map: map,
+                map: OL3APP.map,
                 source: new ol.source.Vector({
                     features: [accuracyFeature, positionFeature]
                 })
             });
         }
     }
-    
+
     //绑定透明度
     $.OL3Toolkit.controlOpacity = {
         activate: function(targetLayerGroup) {
             var this_ = this;
-            this_.findTargetLayerGroup(targetLayerGroup);           
+            this_.findTargetLayerGroup(targetLayerGroup);
         },
-        findTargetLayerGroup: function(targetName){
+        findTargetLayerGroup: function(targetName) {
             var this_ = this;
             map.getLayers().forEach(function(layerGroup, j) {
                 if (layerGroup.values_.title == targetName) {
@@ -777,9 +869,48 @@ function ol3ToolkitInit_() {
         bindOpacity: function(targetID, layer) {
             var opacityInput = $(targetID);
             opacityInput.on('input change', function() {
-              layer.setOpacity(parseFloat(this.value));
+                layer.setOpacity(parseFloat(this.value));
             });
             opacityInput.val(String(layer.getOpacity()));
+        }
+    }
+
+    //组装GeoJSON features，以便调用readFeatures，最终显示图层
+    //geomModels 1.包含属性为geomAtbName，值为ST_AsGeoJSON查询格式的对象list
+    //           2.ST_AsGeoJSON查询格式的对象list(geomAtbName=null
+    $.OL3Toolkit.makefeatures = {
+        makeGeoJSONfeatures: function(geomModels, geomAtbName) {
+            var features = [];
+            console.log("makeFeature");
+            for (var i = 0; i < geomModels.length; i++) {
+                //console.log(JSON.parse(geomModels[i].geom));
+                if (geomAtbName != null) {
+                    features.push($.extend({
+                        'type': 'Feature'
+                    }, {
+                        'geometry': JSON.parse(geomModels[i][geomAtbName])
+                    }));
+                } else {
+                    features.push($.extend({
+                        'type': 'Feature'
+                    }, {
+                        'geometry': JSON.parse(geomModels[i])
+                    }));
+                }
+            }
+            //console.log("makeFeatureCollection");
+            return $.extend({}, {
+                'type': 'FeatureCollection'
+            }, {
+                'crs': {
+                    'type': 'name',
+                    'properties': {
+                        'name': 'EPSG:3857'
+                    }
+                }
+            }, {
+                'features': features
+            });
         }
     }
 
@@ -793,18 +924,18 @@ function ol3ToolkitInit_() {
  * https://github.com/cowboy/jquery-resize
  * 暂时原封不动的用着，看后期有啥改动
  */
-(function($,window,undefined){
+(function($, window, undefined) {
     '$:nomunge'; // YUI compressor使用参数.
 
     // 一个jQuery对象包含所有要用resize方法的非window元素
     var elems = $([]),
 
-    // 如果$.resize 存在则继承, 否则创建一个.
-        jq_resize = $.resize = $.extend( $.resize, {} ),
+        // 如果$.resize 存在则继承, 否则创建一个.
+        jq_resize = $.resize = $.extend($.resize, {}),
 
         timeout_id,
 
-    // 重复利用的字段.
+        // 重复利用的字段.
         str_setTimeout = 'setTimeout',
         str_resize = 'resize',
         str_data = str_resize + '-special-event',
@@ -816,7 +947,7 @@ function ol3ToolkitInit_() {
     // The numeric interval (in milliseconds) at which the resize event polling
     // loop executes. Defaults to 250.
 
-    jq_resize[ str_delay ] = 100;
+    jq_resize[str_delay] = 100;
 
     // Property: jQuery.resize.throttleWindow
     // 
@@ -833,7 +964,7 @@ function ol3ToolkitInit_() {
     // event throttling, please note that this property must be changed before any
     // window object resize event callbacks are bound.
 
-    jq_resize[ str_throttle ] = true;
+    jq_resize[str_throttle] = true;
 
     // Event: resize event
     // 
@@ -872,7 +1003,7 @@ function ol3ToolkitInit_() {
     // > elem.data( 'resize-special-event', { width: elem.width(), height: elem.height() } );
     // > elem.resize();
 
-    $.event.special[ str_resize ] = {
+    $.event.special[str_resize] = {
 
         // Called only when the first 'resize' event callback is bound per element.
         setup: function() {
@@ -880,18 +1011,23 @@ function ol3ToolkitInit_() {
             // jQuery will bind the event using DOM methods. Since only 'window'
             // objects have a .setTimeout method, this should be a sufficient test.
             // Unless, of course, we're throttling the 'resize' event for window.
-            if ( !jq_resize[ str_throttle ] && this[ str_setTimeout ] ) { return false; }
+            if (!jq_resize[str_throttle] && this[str_setTimeout]) {
+                return false;
+            }
 
             var elem = $(this);
 
             // Add this element to the list of internal elements to monitor.
-            elems = elems.add( elem );
+            elems = elems.add(elem);
 
             // Initialize data store on the element.
-            $.data( this, str_data, { w: elem.width(), h: elem.height() } );
+            $.data(this, str_data, {
+                w: elem.width(),
+                h: elem.height()
+            });
 
             // If this is the first element added, start the polling loop.
-            if ( elems.length === 1 ) {
+            if (elems.length === 1) {
                 loopy();
             }
         },
@@ -902,29 +1038,33 @@ function ol3ToolkitInit_() {
             // jQuery will unbind the event using DOM methods. Since only 'window'
             // objects have a .setTimeout method, this should be a sufficient test.
             // Unless, of course, we're throttling the 'resize' event for window.
-            if ( !jq_resize[ str_throttle ] && this[ str_setTimeout ] ) { return false; }
+            if (!jq_resize[str_throttle] && this[str_setTimeout]) {
+                return false;
+            }
 
             var elem = $(this);
 
             // Remove this element from the list of internal elements to monitor.
-            elems = elems.not( elem );
+            elems = elems.not(elem);
 
             // Remove any data stored on the element.
-            elem.removeData( str_data );
+            elem.removeData(str_data);
 
             // If this is the last element removed, stop the polling loop.
-            if ( !elems.length ) {
-                clearTimeout( timeout_id );
+            if (!elems.length) {
+                clearTimeout(timeout_id);
             }
         },
 
         // Called every time a 'resize' event callback is bound per element (new in
         // jQuery 1.4).
-        add: function( handleObj ) {
+        add: function(handleObj) {
             // Since window has its own native 'resize' event, return false so that
             // jQuery doesn't modify the event object. Unless, of course, we're
             // throttling the 'resize' event for window.
-            if ( !jq_resize[ str_throttle ] && this[ str_setTimeout ] ) { return false; }
+            if (!jq_resize[str_throttle] && this[str_setTimeout]) {
+                return false;
+            }
 
             var old_handler;
 
@@ -934,9 +1074,9 @@ function ol3ToolkitInit_() {
             // of the event callback. See the "Double firing issue in jQuery 1.3.2"
             // comments above for more information.
 
-            function new_handler( e, w, h ) {
+            function new_handler(e, w, h) {
                 var elem = $(this),
-                    data = $.data( this, str_data );
+                    data = $.data(this, str_data);
 
                 // If called from the polling loop, w and h will be passed in as
                 // arguments. If called manually, via .trigger( 'resize' ) or .resize(),
@@ -944,12 +1084,12 @@ function ol3ToolkitInit_() {
                 data.w = w !== undefined ? w : elem.width();
                 data.h = h !== undefined ? h : elem.height();
 
-                old_handler.apply( this, arguments );
+                old_handler.apply(this, arguments);
             };
 
             // This may seem a little complicated, but it normalizes the special event
             // .add method between jQuery 1.4/1.4.1 and 1.4.2+
-            if ( $.isFunction( handleObj ) ) {
+            if ($.isFunction(handleObj)) {
                 // 1.4, 1.4.1
                 old_handler = handleObj;
                 return new_handler;
@@ -965,19 +1105,19 @@ function ol3ToolkitInit_() {
     function loopy() {
 
         // Start the polling loop, asynchronously.
-        timeout_id = window[ str_setTimeout ](function(){
+        timeout_id = window[str_setTimeout](function() {
 
             // Iterate over all elements to which the 'resize' event is bound.
-            elems.each(function(){
+            elems.each(function() {
                 var elem = $(this),
                     width = elem.width(),
                     height = elem.height(),
-                    data = $.data( this, str_data );
+                    data = $.data(this, str_data);
 
                 // If element size has changed since the last time, update the element
                 // data store and trigger the 'resize' event.
-                if ( width !== data.w || height !== data.h ) {
-                    elem.trigger( str_resize, [ data.w = width, data.h = height ] );
+                if (width !== data.w || height !== data.h) {
+                    elem.trigger(str_resize, [data.w = width, data.h = height]);
                 }
 
             });
@@ -985,8 +1125,8 @@ function ol3ToolkitInit_() {
             // Loop.
             loopy();
 
-        }, jq_resize[ str_delay ] );
+        }, jq_resize[str_delay]);
 
     };
 
-})(jQuery,this);
+})(jQuery, this);
