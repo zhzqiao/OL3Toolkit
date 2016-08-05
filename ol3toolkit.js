@@ -138,6 +138,11 @@ $.OL3Toolkit.options = {
     enalblePosition: false,
     //回到初始视角
     backOriginView: true,
+    //绑定透明度调整
+    //参数为图层组的title名
+    //input控件的id必须和内含图层的title对应
+    bindOpacityTarget: null,
+    
     //测量功能
     basicMeasure: true,
     //地图上弹出窗
@@ -238,6 +243,10 @@ $(function() {
     if(o.enalblePosition||o.backOriginView){
         ol.inherits(ol.control.CustomZoomTo, ol.control.Control);
         map.addControl(new ol.control.CustomZoomTo());
+    }
+    
+    if(o.bindOpacityTarget != null){
+        $.OL3Toolkit.controlOpacity.activate(o.bindOpacityTarget)
     }
 
 })
@@ -394,7 +403,7 @@ function ol3ToolkitInit_() {
             for (var cN = 0; cN < this.MCBAND.length; cN++) {
                 if (cM.lat >= this.MCBAND[cN]) {
                     cO = this.MC2LL[cN];
-                    break
+                    break;
                 }
             }
             var T = this.convertor(cL, cO);
@@ -410,14 +419,14 @@ function ol3ToolkitInit_() {
             for (var cM = 0; cM < this.LLBAND.length; cM++) {
                 if (cL.lat >= this.LLBAND[cM]) {
                     cN = this.LL2MC[cM];
-                    break
+                    break;
                 }
             }
             if (!cN) {
                 for (var cM = this.LLBAND.length - 1; cM >= 0; cM--) {
                     if (cL.lat <= -this.LLBAND[cM]) {
                         cN = this.LL2MC[cM];
-                        break
+                        break;
                     }
                 }
             }
@@ -452,7 +461,7 @@ function ol3ToolkitInit_() {
             while (cM < cL) {
                 cM += T - cL
             }
-            return cM
+            return cM;
         }
     }
 
@@ -746,6 +755,31 @@ function ol3ToolkitInit_() {
                     features: [accuracyFeature, positionFeature]
                 })
             });
+        }
+    }
+    
+    //绑定透明度
+    $.OL3Toolkit.controlOpacity = {
+        activate: function(targetLayerGroup) {
+            var this_ = this;
+            this_.findTargetLayerGroup(targetLayerGroup);           
+        },
+        findTargetLayerGroup: function(targetName){
+            var this_ = this;
+            map.getLayers().forEach(function(layerGroup, j) {
+                if (layerGroup.values_.title == targetName) {
+                    layerGroup.getLayers().forEach(function(layerTile, j) {
+                        this_.bindOpacity('#' + layerTile.values_.title, layerTile);
+                    })
+                }
+            })
+        },
+        bindOpacity: function(targetID, layer) {
+            var opacityInput = $(targetID);
+            opacityInput.on('input change', function() {
+              layer.setOpacity(parseFloat(this.value));
+            });
+            opacityInput.val(String(layer.getOpacity()));
         }
     }
 
