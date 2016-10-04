@@ -151,6 +151,8 @@ $.OL3Toolkit.options = {
     mapSizeSelfAdaption: true,
     //影响地图高度的外包组件
     mapWrapper: [],
+    //影响地图高度的边距总和
+    mapMargining:7,
     //多地图源切换
     enableSwitchMultiMapSources: true,
     //包含瓦片加载进度条
@@ -242,7 +244,7 @@ $(function() {
     //https://github.com/almasaeed2010/AdminLTE
     //所以需要自适应的内容填写'.content-wrapper'
     if(o.mapSizeSelfAdaption){
-        $.OL3Toolkit.sizeSelfAdaption.activate(o.mapWrapper);
+        $.OL3Toolkit.sizeSelfAdaption.activate(o.mapWrapper,o.mapMargining);
     }
 
     //根据参数判断是否是否允许切换地图功能
@@ -717,21 +719,21 @@ function ol3ToolkitInit_() {
 
 
     $.OL3Toolkit.sizeSelfAdaption = {
-        activate: function (mapWrapper) {
+        activate: function (mapWrapper,mapMargining) {
             //初始时调整
             var this_ = this;
-            this_.fix(mapWrapper);
+            this_.fix(mapWrapper,mapMargining);
             //改变窗口大小时再次调整
             $('#map').resize(function () {
-                this_.fix(mapWrapper);
+                this_.fix(mapWrapper,mapMargining);
             });
         },
-        fix: function (mapWrapper) {
+        fix: function (mapWrapper,mapMargining) {
         	var wrapheights=0;
         	for(var i=0;i<mapWrapper.length;i++){
         		wrapheights+=$(mapWrapper[i]).outerHeight();
         	}
-            OL3APP.map.setSize([$('#map').width(),$(window).height() - wrapheights - 7])
+            OL3APP.map.setSize([$('#map').width(),$(window).height() - wrapheights - mapMargining])
         }
     };
 
@@ -865,7 +867,7 @@ function ol3ToolkitInit_() {
     }
 	
 	//组装GeoJSON features，以便调用readFeatures，最终显示图层
-	//geomModels 1.包含属性为geomAtbName，值为ST_AsGeoJSON查询格式的对象list
+    //geomModels 1.包含属性为geomAtbName，值为ST_AsGeoJSON查询格式的对象list
     //           2.ST_AsGeoJSON查询格式的对象list(geomAtbName=null
 	$.OL3Toolkit.makefeatures= {
 		makeGeoJSONfeatures: function (geomModels,geomAtbName) {
